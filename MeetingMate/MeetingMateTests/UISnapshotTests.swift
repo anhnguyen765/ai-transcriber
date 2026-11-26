@@ -53,7 +53,7 @@ struct UISnapshotTests {
     /// The real popover (idle), pointed at the test meetings project if it exists on this Mac.
     @Test(.enabled(if: outputFolder != nil))
     func popoverIdle() async throws {
-        let project = URL(fileURLWithPath: "/Users/n3rd/project-x/2027")
+        let project = URL(fileURLWithPath: ProcessInfo.processInfo.environment["LANG_TEST_PROJECT"] ?? "/nonexistent")
         if FileManager.default.fileExists(atPath: project.path),
            let bookmark = try? project.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) {
             UserDefaults.standard.set(bookmark, forKey: "projectFolderBookmark") // test-only defaults domain
@@ -123,7 +123,7 @@ struct UISnapshotTests {
     /// The main window's sidebar and detail side by side at the default 1280×840 size.
     @Test(.enabled(if: outputFolder != nil))
     func mainWindow() async throws {
-        let project = URL(fileURLWithPath: "/Users/n3rd/project-x/2027")
+        let project = URL(fileURLWithPath: ProcessInfo.processInfo.environment["LANG_TEST_PROJECT"] ?? "/nonexistent")
         if FileManager.default.fileExists(atPath: project.path),
            let bookmark = try? project.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) {
             UserDefaults.standard.set(bookmark, forKey: "projectFolderBookmark")
@@ -144,7 +144,7 @@ struct UISnapshotTests {
     /// The meeting detail for the first real meeting (needs the test project on this Mac).
     @Test(.enabled(if: outputFolder != nil))
     func meetingDetail() async throws {
-        let project = URL(fileURLWithPath: "/Users/n3rd/project-x/2027")
+        let project = URL(fileURLWithPath: ProcessInfo.processInfo.environment["LANG_TEST_PROJECT"] ?? "/nonexistent")
         if FileManager.default.fileExists(atPath: project.path),
            let bookmark = try? project.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) {
             UserDefaults.standard.set(bookmark, forKey: "projectFolderBookmark")
@@ -162,7 +162,7 @@ struct UISnapshotTests {
     /// The Dự án section, wide (two columns) and narrow (one column).
     @Test(.enabled(if: outputFolder != nil))
     func projectSection() async throws {
-        let project = URL(fileURLWithPath: "/Users/n3rd/project-x/2027")
+        let project = URL(fileURLWithPath: ProcessInfo.processInfo.environment["LANG_TEST_PROJECT"] ?? "/nonexistent")
         if FileManager.default.fileExists(atPath: project.path),
            let bookmark = try? project.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) {
             UserDefaults.standard.set(bookmark, forKey: "projectFolderBookmark")

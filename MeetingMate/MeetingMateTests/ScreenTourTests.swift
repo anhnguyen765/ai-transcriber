@@ -12,8 +12,12 @@ import Testing
 @Suite(.serialized)
 struct ScreenTourTests {
     static let outputFolder = ProcessInfo.processInfo.environment["LANG_SNAPSHOT_DIR"]
-    /// Projects to tour (the folders must exist on this Mac); the first meetings project gets a meeting opened.
-    static let projects = ["/Users/n3rd/project-x/2027", "/Users/n3rd/project-x/mkt-tester"]
+    /// Projects to tour: LANG_TOUR_PROJECTS ("path1:path2"), else LANG_TEST_PROJECT.
+    static let projects: [String] = {
+        let env = ProcessInfo.processInfo.environment
+        let list = env["LANG_TOUR_PROJECTS"] ?? env["LANG_TEST_PROJECT"] ?? ""
+        return list.split(separator: ":").map(String.init)
+    }()
     /// The main window's minimum width, and a wide external-display width.
     static let widths: [CGFloat] = [1080, 1600]
     static let height: CGFloat = 900
