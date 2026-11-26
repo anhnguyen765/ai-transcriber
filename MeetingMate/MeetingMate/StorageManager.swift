@@ -51,19 +51,19 @@ struct LaunchAtLoginSettings: View {
     @State private var status = LaunchAtLogin.status
 
     var body: some View {
-        Toggle("Open lắng at login", isOn: $enabled)
+        Toggle("Mở lắng khi đăng nhập", isOn: $enabled)
             .onChange(of: enabled) {
                 message = LaunchAtLogin.isInstalledInApplications ? LaunchAtLogin.set(enabled) : nil
                 status = LaunchAtLogin.status
             }
         if !LaunchAtLogin.isInstalledInApplications {
-            Text("Works only for the copy of lắng in /Applications (this one runs from \(Bundle.main.bundleURL.deletingLastPathComponent().lastPathComponent)).")
+            Text("Chỉ hoạt động với bản lắng trong /Applications (bản này chạy từ \(Bundle.main.bundleURL.deletingLastPathComponent().lastPathComponent)).")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         } else if status == .requiresApproval {
             HStack {
-                Text("macOS needs your approval in Login Items.").font(.caption).foregroundStyle(.orange)
-                Button("Open Login Items") { SMAppService.openSystemSettingsLoginItems() }.controlSize(.small)
+                Text("macOS cần bạn cho phép trong Mục đăng nhập.").font(.caption).foregroundStyle(.orange)
+                Button("Mở Mục đăng nhập") { SMAppService.openSystemSettingsLoginItems() }.controlSize(.small)
             }
         }
         if let message {
@@ -233,22 +233,22 @@ struct StorageSettings: View {
         LabeledContent("Whisper models", value: models.map(StorageReport.format) ?? "…")
         LabeledContent("Ollama models", value: ollama.map(StorageReport.format) ?? "…")
         LabeledContent("Project indexes", value: indexes.map(StorageReport.format) ?? "…")
-        Button("Delete audio older than 30 days…") { confirmDelete = true }
+        Button("Xoá audio cũ hơn 30 ngày…") { confirmDelete = true }
             .disabled(candidates.isEmpty)
             .help(candidates.isEmpty ? "No transcribed meeting older than 30 days has audio." : "")
             .confirmationDialog("Move \(candidates.count) audio files (\(StorageReport.format(candidates.reduce(0) { $0 + $1.size }))) to the Trash?",
                                 isPresented: $confirmDelete) {
-                Button("Move to Trash", role: .destructive) { deleteOld() }
+                Button("Chuyển vào Thùng rác", role: .destructive) { deleteOld() }
             } message: {
-                Text("Only audio of meetings older than 30 days that already have a transcript. Transcripts and summaries stay.")
+                Text("Chỉ xoá audio của cuộc họp cũ hơn 30 ngày và đã có bản chép lời. Bản chép lời và tóm tắt được giữ lại.")
             }
         HStack {
-            Button("Copy log") {
+            Button("Chép nhật ký") {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(Log.recentText(), forType: .string)
                 message = "Log copied."
             }
-            Button("Show Logs Folder") {
+            Button("Mở thư mục nhật ký") {
                 try? FileManager.default.createDirectory(at: Log.folder, withIntermediateDirectories: true)
                 NSWorkspace.shared.open(Log.folder)
             }

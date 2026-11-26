@@ -4,6 +4,16 @@ import SwiftUI
 enum AppSettings {
     static let modelKey = "whisperModel"
     static let autoTranscribeKey = "autoTranscribe"
+    static let notchIslandKey = "notchIsland"
+    static let skipShortRecordingsKey = "skipShortRecordings"
+    /// Recordings shorter than this are offered for discard (never deleted without asking).
+    static let shortRecordingSeconds: Double = 15
+    static var skipShortRecordings: Bool {
+        UserDefaults.standard.object(forKey: skipShortRecordingsKey) as? Bool ?? true
+    }
+    static var notchIsland: Bool {
+        UserDefaults.standard.object(forKey: notchIslandKey) as? Bool ?? true
+    }
     static let deleteAudioKey = "deleteAudioAfterTranscription"
 
     static var model: WhisperModel {
@@ -87,6 +97,8 @@ struct SettingsView: View {
     @AppStorage(AppSettings.embeddingModelKey) private var embeddingModel = AppSettings.defaultEmbeddingModel
     @State private var confirmDelete = false
     @AppStorage(AppSettings.meetingDetectionKey) private var meetingDetection = true
+    @AppStorage(AppSettings.notchIslandKey) private var notchIsland = true
+    @AppStorage(AppSettings.skipShortRecordingsKey) private var skipShortRecordings = true
     @AppStorage(AppSettings.useProjectContextKey) private var useProjectContext = true
     @State private var installedLLMs: [String] = []
     @State private var promptMessage: String?
@@ -109,51 +121,53 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section("General") {
-                Button("Run setup again…") {
+            Section("Chung") {
+                Button("Chạy lại thiết lập…") {
                     NSApp.activate()
                     openWindow(id: "onboarding")
                 }
                 LaunchAtLoginSettings()
                 Toggle("Nhắc khi phát hiện cuộc họp", isOn: $meetingDetection)
-                Text("When Zoom, Teams, Webex or a browser (Google Meet) starts using the microphone, lắng asks \"Ghi lại không?\" (at most every 10 minutes). It never records without your click.")
+                Toggle("Hiện ô nhỏ cạnh notch khi đang ghi", isOn: $notchIsland)
+                Toggle("Hỏi trước khi bỏ bản ghi dưới 15 giây", isOn: $skipShortRecordings)
+                Text("Khi Zoom, Teams, Webex hoặc trình duyệt (Google Meet) bắt đầu dùng micro, lắng hỏi \"Ghi lại không?\" (tối đa 10 phút một lần). Không bao giờ tự ghi nếu bạn không bấm.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            Section("Storage & logs") {
+            Section("Lưu trữ & nhật ký") {
                 StorageSettings(projectFolder: indexer.projectFolder)
             }
-            Section("Shortcuts") {
+            Section("Phím tắt") {
                 ShortcutSettings()
             }
-            Section("Transcription") {
+            Section("Chép lời") {
                 transcriptionSettings
             }
-            Section("Summary") {
-                Picker("LLM model", selection: $llmModel) {
+            Section("Tóm tắt") {
+                Picker("Mô hình tóm tắt", selection: $llmModel) {
                     ForEach(llmChoices, id: \.self) { name in
                         Text(installedLLMs.contains(name) || installedLLMs.isEmpty ? name : "\(name) (not downloaded)")
                             .tag(name)
                     }
                 }
-                Text("qwen3:8b: best quality (~5 GB). qwen3:4b: faster, lower quality (~2.5 GB).")
+                Text("qwen3:8b: chất lượng tốt nhất (~5 GB). qwen3:4b: nhanh hơn, chất lượng thấp hơn (~2.5 GB).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                TextField("My name", text: $myName, prompt: Text("Tôi"))
-                Text("Replaces the \"Tôi\" label in what the model reads, so the summary knows who you are.")
+                TextField("Tên của tôi", text: $myName, prompt: Text("Tôi"))
+                Text("Thay nhãn \"Tôi\" trong nội dung gửi cho mô hình, để bản tóm tắt biết bạn là ai.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Picker("Summary language", selection: $summaryLanguage) {
+                Picker("Ngôn ngữ tóm tắt", selection: $summaryLanguage) {
                     Text("Tiếng Việt").tag(SummaryWriter.Language.vietnamese.rawValue)
-                    Text("English").tag(SummaryWriter.Language.english.rawValue)
+                    Text("Tiếng Anh").tag(SummaryWriter.Language.english.rawValue)
                 }
-                Toggle("Auto-summarize after transcription", isOn: $autoSummarize)
+                Toggle("Tự tóm tắt sau khi chép lời", isOn: $autoSummarize)
                 HStack {
-                    Button("Open Prompts Folder") {
+                    Button("Mở thư mục prompt") {
                         PromptStore.createMissingDefaults()
                         NSWorkspace.shared.open(PromptStore.folder)
                     }
-                    Button("Reset prompts to default") {
+                    Button("Đặt lại prompt mặc định") {
                         do {
                             try PromptStore.resetToDefaults()
                             promptMessage = "Prompts reset."
@@ -166,36 +180,36 @@ struct SettingsView: View {
                     Text(promptMessage).font(.caption).foregroundStyle(.secondary)
                 }
             }
-            Section("Project index") {
-                Toggle("Use project context in summaries", isOn: $useProjectContext)
-                Text("Adds related docs and earlier meetings as background, plus \"Liên quan tới tài liệu\" and \"Thay đổi so với trước\" sections.")
+            Section("Chỉ mục dự án") {
+                Toggle("Dùng ngữ cảnh dự án khi tóm tắt", isOn: $useProjectContext)
+                Text("Thêm tài liệu liên quan và cuộc họp trước làm ngữ cảnh, cùng các mục \"Liên quan tới tài liệu\" và \"Thay đổi so với trước\".")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Picker("Embedding model", selection: $embeddingModel) {
+                Picker("Mô hình nhúng (embedding)", selection: $embeddingModel) {
                     ForEach(embeddingChoices, id: \.self) { Text($0).tag($0) }
                 }
-                Text("bge-m3 (~1.2 GB) understands Vietnamese. Changing the model re-embeds the whole project.")
+                Text("bge-m3 (~1.2 GB) hiểu tiếng Việt. Đổi mô hình sẽ nhúng lại toàn bộ dự án.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Stepper(value: $maxFileSizeMB, in: 0.5...20, step: 0.5) {
-                    Text("Max file size: \(maxFileSizeMB, specifier: "%.1f") MB")
+                    Text("Cỡ file tối đa: \(maxFileSizeMB, specifier: "%.1f") MB")
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Extra ignore patterns (one per line, like .gitignore)")
+                    Text("Mẫu bỏ qua thêm (mỗi dòng một mẫu, giống .gitignore)")
                     TextEditor(text: $extraIgnorePatterns)
                         .font(.system(.body, design: .monospaced))
                         .frame(height: 70)
-                    Text("A .langignore file in the project folder works too. Changes apply on the next Reindex.")
+                    Text("File .langignore trong thư mục dự án cũng được dùng. Thay đổi áp dụng khi đọc lại dự án.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Button("Delete project index…", role: .destructive) { confirmDelete = true }
+                Button("Xoá chỉ mục dự án…", role: .destructive) { confirmDelete = true }
                     .disabled(indexer.projectFolder == nil)
                     .confirmationDialog("Delete the index of \(indexer.projectFolder?.lastPathComponent ?? "")?",
                                         isPresented: $confirmDelete) {
-                        Button("Delete Index", role: .destructive) { indexer.deleteIndex() }
+                        Button("Xoá chỉ mục", role: .destructive) { indexer.deleteIndex() }
                     } message: {
-                        Text("Only the index in Application Support is deleted. Your project files are not touched. Use Reindex Project to build it again.")
+                        Text("Chỉ xoá chỉ mục trong Application Support. File dự án của bạn không bị động vào. Dùng \"Đọc lại dự án\" để tạo lại.")
                     }
             }
         }
@@ -209,24 +223,24 @@ struct SettingsView: View {
     }
 
     @ViewBuilder private var transcriptionSettings: some View {
-        Picker("Model", selection: $model) {
+        Picker("Mô hình", selection: $model) {
             ForEach(WhisperModel.allCases) { model in
                 Text(model.displayName).tag(model.rawValue)
             }
         }
-        Text("A model is downloaded the first time you use it, into Application Support/Lang/Models.")
+        Text("Mô hình được tải về lần đầu dùng, vào Application Support/Lang/Models.")
             .font(.caption)
             .foregroundStyle(.secondary)
 
-        Toggle("Auto-transcribe after recording", isOn: $autoTranscribe)
-        Toggle("Delete audio after transcription", isOn: $deleteAudio)
+        Toggle("Tự chép lời sau khi ghi", isOn: $autoTranscribe)
+        Toggle("Xoá audio sau khi chép lời", isOn: $deleteAudio)
         if deleteAudio {
-            Text("mic.m4a and system.m4a are deleted only after transcript.md was saved successfully.")
+            Text("mic.m4a và system.m4a chỉ bị xoá sau khi transcript.md được lưu thành công.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
 
-        Button("Show Models Folder in Finder") {
+        Button("Mở thư mục mô hình trong Finder") {
             let folder = WhisperKitEngine.modelsFolder
             try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             NSWorkspace.shared.open(folder)

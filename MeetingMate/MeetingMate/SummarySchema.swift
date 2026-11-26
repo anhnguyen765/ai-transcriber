@@ -142,6 +142,8 @@ struct ActionItem: Codable, Equatable {
     var owner: String
     var deadline: String
     var timestamp: String
+    /// Checked off in the app. Optional so summary.json files from before this field still load.
+    var done: Bool?
 
     init(task: String, owner: String = unknown, deadline: String = unknown, timestamp: String = "") {
         self.task = task
@@ -156,6 +158,7 @@ struct ActionItem: Codable, Equatable {
         owner = Self.orUnknown(try c.decodeIfPresent(String.self, forKey: .owner))
         deadline = Self.orUnknown(try c.decodeIfPresent(String.self, forKey: .deadline))
         timestamp = try c.decodeIfPresent(String.self, forKey: .timestamp) ?? ""
+        done = try c.decodeIfPresent(Bool.self, forKey: .done)
     }
 
     private static func orUnknown(_ value: String?) -> String {

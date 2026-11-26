@@ -15,6 +15,8 @@ final class MicRecorder {
     private var startHostTime: UInt64 = .max
     private var stopHostTime: UInt64 = .max
     private(set) var writeError: String?
+    /// Live loudness for the UI (read-only measurement, does not affect the file).
+    let level = AudioLevelMeter()
 
     /// What we write: 48 kHz mono float samples (AVAudioFile encodes them to AAC).
     private let outputFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32,
@@ -38,6 +40,7 @@ final class MicRecorder {
                                commonFormat: .pcmFormatFloat32, interleaved: false)
 
         input.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self] buffer, time in
+            self?.level.ingest(buffer)
             self?.handle(buffer, time: time)
         }
         engine.prepare()

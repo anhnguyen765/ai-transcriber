@@ -194,6 +194,7 @@ final class IndexStore {
     struct ChunkMeta {
         let sourceType: SourceType
         let meetingDate: Double?
+        let path: String
     }
 
     /// All stored vectors as one row-major matrix (n × dimensions), for brute-force cosine search.
@@ -204,7 +205,7 @@ final class IndexStore {
             var matrix: [Float] = []
             var dimensions = 0
             let rows = try Row.fetchCursor(db, sql: """
-                SELECT id, vector, sourceType, meetingDate FROM chunk WHERE vector IS NOT NULL
+                SELECT id, vector, sourceType, meetingDate, path FROM chunk WHERE vector IS NOT NULL
                 """)
             while let row = try rows.next() {
                 let data: Data = row["vector"]
@@ -213,7 +214,7 @@ final class IndexStore {
                 guard count == dimensions else { continue } // skip vectors from another model
                 ids.append(row["id"])
                 meta.append(ChunkMeta(sourceType: SourceType(rawValue: row["sourceType"] ?? "") ?? .doc,
-                                      meetingDate: row["meetingDate"]))
+                                      meetingDate: row["meetingDate"], path: row["path"] ?? ""))
                 data.withUnsafeBytes { matrix.append(contentsOf: $0.bindMemory(to: Float.self)) }
             }
             return (ids, meta, dimensions, matrix)
@@ -240,6 +241,10 @@ final class IndexStore {
         if let to = filter.meetingsTo {
             sql += " AND (chunk.meetingDate IS NULL OR chunk.meetingDate < ?)"
             _ = arguments.append(contentsOf: [to.timeIntervalSince1970])
+        }
+        if let prefix = filter.pathPrefix {
+            sql += " AND substr(chunk.path, 1, ?) = ?"
+            _ = arguments.append(contentsOf: [prefix.count, prefix])
         }
         sql += " ORDER BY bm25(chunk_ft) LIMIT ?"
         _ = arguments.append(contentsOf: [limit])

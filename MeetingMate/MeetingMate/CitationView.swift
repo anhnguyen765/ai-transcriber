@@ -96,7 +96,7 @@ struct CitationText: View {
 }
 
 /// The row of source chips under an answer. Cited sources come first; hover shows a preview.
-struct SourceChips: View {
+struct LegacySourceChips: View {
     let answer: String
     let sources: [AnswerSource]
     let open: (AnswerSource) -> Void
@@ -112,14 +112,14 @@ struct SourceChips: View {
                 .foregroundStyle(.secondary)
             FlowLayout(spacing: 6) {
                 ForEach(ordered) { source in
-                    SourceChip(source: source, cited: cited.contains(source.label), open: open)
+                    LegacySourceChip(source: source, cited: cited.contains(source.label), open: open)
                 }
             }
         }
     }
 }
 
-private struct SourceChip: View {
+private struct LegacySourceChip: View {
     let source: AnswerSource
     let cited: Bool
     let open: (AnswerSource) -> Void

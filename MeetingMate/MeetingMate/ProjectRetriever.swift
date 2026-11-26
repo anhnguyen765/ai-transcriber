@@ -19,6 +19,13 @@ struct SearchFilter: Equatable {
     /// Meetings outside [from, to) are skipped; documents are not affected by dates.
     var meetingsFrom: Date?
     var meetingsTo: Date?
+    /// Only chunks whose path starts with this (e.g. ".meetings/2026-11-26_14-18-17/"). nil = any.
+    var pathPrefix: String?
+
+    func allowsPath(_ path: String) -> Bool {
+        guard let pathPrefix else { return true }
+        return path.hasPrefix(pathPrefix)
+    }
 
     func allows(_ type: SourceType, meetingDate: Double?) -> Bool {
         if let sourceTypes, !sourceTypes.contains(type) { return false }
@@ -89,7 +96,8 @@ final class ProjectRetriever {
                     var scores = Ranking.cosineScores(matrix: vectors.matrix, dimensions: vectors.dimensions,
                                                       query: query)
                     for i in scores.indices
-                    where !filter.allows(vectors.meta[i].sourceType, meetingDate: vectors.meta[i].meetingDate) {
+                    where !filter.allows(vectors.meta[i].sourceType, meetingDate: vectors.meta[i].meetingDate)
+                        || !filter.allowsPath(vectors.meta[i].path) {
                         scores[i] = -.infinity // outside the chosen scope
                     }
                     let top = Ranking.topIndices(scores, count: Self.candidatesPerMethod).filter { scores[$0] > -.infinity }

@@ -210,7 +210,7 @@ struct OnboardingView: View {
                     if model.micStatus == .notDetermined {
                         Button("Cho phép micro") { model.requestMicrophone() }
                     } else if model.micStatus != .authorized {
-                        Button("Mở System Settings") { Recorder.openPrivacySettings("Privacy_Microphone") }
+                        Button("Mở Cài đặt hệ thống") { Recorder.openPrivacySettings("Privacy_Microphone") }
                     }
                 }
 
@@ -218,7 +218,7 @@ struct OnboardingView: View {
                      detail: "macOS chỉ cho thu âm thanh của Zoom/Meet/Teams qua quyền này. lắng không lưu hình ảnh nào. Sau khi bật, cần mở lại lắng.") {
                     if !model.screenAllowed {
                         Button("Cho phép") { model.requestScreenRecording() }
-                        Button("Mở System Settings") { Recorder.openPrivacySettings("Privacy_ScreenCapture") }
+                        Button("Mở Cài đặt hệ thống") { Recorder.openPrivacySettings("Privacy_ScreenCapture") }
                         if model.screenRequested {
                             Button("Đã bật, mở lại lắng") { model.relaunch() }.buttonStyle(.borderedProminent)
                         }
