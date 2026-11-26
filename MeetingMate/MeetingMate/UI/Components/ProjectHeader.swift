@@ -53,9 +53,8 @@ struct WaterDropTile: View {
             .fill(.foam)
             .frame(width: size, height: size)
             .overlay {
-                Image(systemName: "drop.fill")
-                    .font(.system(size: size * 0.45, weight: .medium))
-                    .foregroundStyle(.water)
+                LangMark(params: LangMarkParams(variant: .flat, showTrail: false, showBackground: false))
+                    .frame(width: size * 0.84, height: size * 0.84)
             }
             .accessibilityHidden(true)
     }
