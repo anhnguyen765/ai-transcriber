@@ -63,7 +63,7 @@ struct TranscriptTab: View {
                                  save: { model.editLine(index, to: $0) })
             }
         }
-        .frame(maxWidth: 700, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func close() {

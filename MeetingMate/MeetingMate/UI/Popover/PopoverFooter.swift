@@ -6,7 +6,7 @@ struct PopoverFooter: View {
     let close: () -> Void
     @Environment(\.openSettings) private var openSettings
 
-    private var noProject: Bool { app.projectStore.folderURL == nil }
+    private var noProject: Bool { app.projectFolder == nil }
 
     var body: some View {
         VStack(spacing: 10) {
@@ -67,7 +67,7 @@ struct PopoverFooter: View {
 
     /// The old flat menu's extra actions, until each one has its new home (main window, Project screen).
     @ViewBuilder private var toolItems: some View {
-        let folder = app.projectStore.folderURL
+        let folder = app.projectFolder
         Button("Mở thư mục ghi âm") { openRecordingsFolder() }
             .disabled(folder == nil)
         Divider()

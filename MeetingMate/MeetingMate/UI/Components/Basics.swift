@@ -196,3 +196,14 @@ extension View {
     .frame(width: 320)
     .background(.white)
 }
+
+// MARK: - Layout
+
+extension View {
+    /// A reading column: at most `maxWidth` wide and centered in the space it gets,
+    /// so wide windows show equal margins instead of an empty right side.
+    func readingColumn(maxWidth: CGFloat = Theme.readingWidth) -> some View {
+        frame(maxWidth: maxWidth, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .center)
+    }
+}

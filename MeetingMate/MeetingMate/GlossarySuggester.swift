@@ -244,6 +244,18 @@ final class GlossaryModel: ObservableObject {
         [.collecting, .waitingForModel, .cleaning].contains(phase)
     }
 
+    /// The project changed: drop the old project's list and stop a suggestion still running for it.
+    func reset(for projectFolder: URL?) {
+        guard projectFolder?.standardizedFileURL != self.projectFolder?.standardizedFileURL else { return }
+        // A suggestion still running belongs to the old project: stop it.
+        work?.cancel()
+        work = nil
+        self.projectFolder = projectFolder
+        items = []
+        note = nil
+        phase = .idle
+    }
+
     /// Builds suggestions for the indexer's current project.
     func suggest(store: IndexStore?, projectFolder: URL?) {
         guard !isWorking else { return }
@@ -279,6 +291,13 @@ final class GlossaryModel: ObservableObject {
             }
             // The user pressed Stop while we were waiting: the stop already reset the window.
             guard !Task.isCancelled else { return }
+
+            // The project was switched while we worked: these terms belong to the old one.
+            guard self.projectFolder == projectFolder else {
+                note = nil
+                phase = .idle
+                return
+            }
 
             let existingKeys = Set(existing.map { $0.lowercased() })
             items = existing.map { Item(term: $0, count: 0, kind: "", selected: true, alreadyInGlossary: true) }

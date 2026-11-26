@@ -42,10 +42,10 @@ struct MeetingDetailView: View {
                         segmented
                         tabContent
                     }
+                    .readingColumn(maxWidth: 860)
                     .padding(.horizontal, 36)
                     .padding(.top, 22)
                     .padding(.bottom, 24)
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .scrollIndicators(.never)
 
@@ -53,7 +53,7 @@ struct MeetingDetailView: View {
             }
 
             if showInspector {
-                InspectorAsk(ask: app.ask, projectFolder: app.projectStore.folderURL, router: app.router,
+                InspectorAsk(ask: app.ask, projectFolder: app.projectFolder, router: app.router,
                              meetingFolder: folder)
                     .frame(width: 330)
             }

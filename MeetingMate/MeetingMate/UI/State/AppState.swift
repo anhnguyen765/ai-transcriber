@@ -74,6 +74,8 @@ final class AppState {
     let summary: SummaryService
     let indexer: ProjectIndexer
     let glossary: GlossaryModel
+    /// "Tổng quan" in the Dự án section: about, top 3 priorities, latest meetings and to-dos.
+    let overview = ProjectOverviewModel()
     let router = Router()
     /// The same Ask model as the "Hỏi lắng" window, so chats are shared.
     let ask: AskViewModel
@@ -82,8 +84,23 @@ final class AppState {
 
     private(set) var status: PipelineStatus = .idle
     private(set) var menuBarMode: MenuBarMode = .idle
+
+    // The current project. ProjectStore and ProjectIndexer are ObservableObjects, which @Observable views
+    // can't see change; these copies are what every view reads, so a project switch updates everything at once.
+    /// The current project folder (the one source of truth for views).
+    private(set) var projectFolder: URL?
+    /// Recently used project folders, newest first (project switcher).
+    private(set) var recentProjects: [URL] = []
+    private(set) var projectName = String(localized: "Chưa có dự án")
+    private(set) var projectSubtitle = String(localized: "Chọn thư mục để bắt đầu")
+    private(set) var projectStatus: ProjectStatus = .none
+    /// Documents read by the index: distinct files, no read error, not a meeting.
+    private(set) var documentCount = 0
+
     /// Newest first.
-    private(set) var meetings: [MeetingInfo] = []
+    private(set) var meetings: [MeetingInfo] = [] {
+        didSet { recomputeProject() }
+    }
     /// Undone-or-not action items across all meetings (shown as the "Việc của tôi" badge).
     private(set) var openTaskCount = 0
     /// Main window state.
@@ -143,55 +160,103 @@ final class AppState {
             .receive(on: RunLoop.main)
             .sink { [weak self] url in self?.summaryFinished(url) }
             .store(in: &subscriptions)
-        projectStore.$folderURL
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in self?.refreshMeetings() }
-            .store(in: &subscriptions)
         // Runs before the project changes (no receive(on:)), so the old chat is saved to its own project.
         projectStore.$folderURL
             .dropFirst()
             .sink { [weak self] _ in self?.ask.newChat() }
             .store(in: &subscriptions)
+        // @Published sends the new value before the property changes: use the value it sends.
+        projectStore.$folderURL
+            .sink { [weak self] url in self?.projectChanged(to: url) }
+            .store(in: &subscriptions)
+        projectStore.$recentFolders
+            .sink { [weak self] folders in self?.recentProjects = folders }
+            .store(in: &subscriptions)
+        let headerChanges: [AnyPublisher<Void, Never>] = [
+            indexer.$phase.map { _ in () }.eraseToAnyPublisher(),
+            indexer.$files.map { _ in () }.eraseToAnyPublisher(),
+            indexer.$problem.map { _ in () }.eraseToAnyPublisher(),
+            recorder.$state.map { _ in () }.eraseToAnyPublisher(),
+        ]
+        Publishers.MergeMany(headerChanges)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] in self?.recomputeProject() }
+            .store(in: &subscriptions)
 
-        refreshMeetings()
         recompute()
     }
 
-    // MARK: - Project header
+    // MARK: - Project
 
-    var projectName: String { projectStore.folderURL?.lastPathComponent ?? String(localized: "Chưa có dự án") }
-
-    var projectSubtitle: String {
-        guard projectStore.folderURL != nil else { return String(localized: "Chọn thư mục để bắt đầu") }
-        if recorder.isRecording { return String(localized: "đang ghi vào .meetings") }
-        if case .reading(let done, let total) = indexer.phase {
-            return String(localized: "đang đọc dự án… \(done)/\(total)")
+    /// Everything that belongs to one project starts over when you switch: header, meeting list,
+    /// selection, overview, glossary and past chats.
+    private func projectChanged(to url: URL?) {
+        let isSame = url?.standardizedFileURL == projectFolder?.standardizedFileURL
+        projectFolder = url
+        if !isSame {
+            selectedMeeting = nil
+            pendingSeek = nil
+            searchText = ""
+            done = nil
+            titleCache = [:]
+            meetings = []
+            openTaskCount = 0
+            glossary.reset(for: url)
         }
-        return String(localized: "\(documentCount) tài liệu · \(meetings.count) cuộc họp")
+        overview.reload(projectFolder: url, meetings: [])
+        recomputeProject()
+        recompute()
+        refreshMeetings()
+        // The indexer switches to the new folder right after this (ProjectStore.onFolderChanged).
+        Task { @MainActor [weak self] in
+            self?.ask.reloadPastChats()
+            self?.recomputeProject()
+        }
     }
 
-    var projectStatus: ProjectStatus {
-        if projectStore.folderURL == nil { return .none }
-        if recorder.isRecording { return .recording }
-        switch indexer.problem {
-        case .ollamaNotRunning:
-            return .attention(String(localized: "Ollama chưa chạy: chỉ tìm được theo từ khóa."))
-        case .modelMissing(let model):
-            return .attention(String(localized: "Chưa tải model \(model): chỉ tìm được theo từ khóa."))
-        case nil: break
+    /// Recomputes the header from the current project, index and recorder.
+    func recomputeProject() {
+        guard let projectFolder else {
+            projectName = String(localized: "Chưa có dự án")
+            projectSubtitle = String(localized: "Chọn thư mục để bắt đầu")
+            projectStatus = .none
+            documentCount = 0
+            return
         }
-        if indexer.isWorking { return .indexing }
-        return documentCount == 0 ? .noDocuments : .indexed
-    }
+        projectName = projectFolder.lastPathComponent
+        // Until the indexer has switched, its files belong to the old project.
+        let indexIsCurrent = indexer.projectFolder?.standardizedFileURL == projectFolder.standardizedFileURL
+        documentCount = indexIsCurrent
+            ? indexer.files.filter { $0.sourceType != .meeting && $0.error == nil && !$0.path.hasPrefix(".meetings/") }.count
+            : 0
 
-    /// Documents read by the index: distinct files, no read error, not a meeting.
-    var documentCount: Int {
-        indexer.files.filter { $0.sourceType != .meeting && $0.error == nil && !$0.path.hasPrefix(".meetings/") }.count
+        if recorder.isRecording {
+            projectSubtitle = String(localized: "đang ghi vào .meetings")
+        } else if indexIsCurrent, case .reading(let done, let total) = indexer.phase {
+            projectSubtitle = String(localized: "đang đọc dự án… \(done)/\(total)")
+        } else {
+            projectSubtitle = String(localized: "\(documentCount) tài liệu · \(meetings.count) cuộc họp")
+        }
+
+        if recorder.isRecording {
+            projectStatus = .recording
+        } else if !indexIsCurrent {
+            projectStatus = .indexing
+        } else {
+            switch indexer.problem {
+            case .ollamaNotRunning:
+                projectStatus = .attention(String(localized: "Ollama chưa chạy: chỉ tìm được theo từ khóa."))
+            case .modelMissing(let model):
+                projectStatus = .attention(String(localized: "Chưa tải model \(model): chỉ tìm được theo từ khóa."))
+            case nil:
+                projectStatus = indexer.isWorking ? .indexing : documentCount == 0 ? .noDocuments : .indexed
+            }
+        }
     }
 
     /// Why recording can't start right now, or nil.
     var recordDisabledReason: String? {
-        if projectStore.folderURL == nil { return String(localized: "Chọn thư mục dự án trước khi ghi âm.") }
+        if projectFolder == nil { return String(localized: "Chọn thư mục dự án trước khi ghi âm.") }
         return nil
     }
 
@@ -210,7 +275,7 @@ final class AppState {
                 Log.info("UI: stop finished (state=\(recorder.state))")
             } else {
                 dismissDone()
-                await recorder.start(projectFolder: projectStore.folderURL)
+                await recorder.start(projectFolder: projectFolder)
             }
         }
     }
@@ -218,12 +283,12 @@ final class AppState {
     /// Audio/video file chosen or dropped on the popover.
     func importAudio(_ url: URL) {
         dismissDone()
-        transcription.transcribeFile(url, projectFolder: projectStore.folderURL)
+        transcription.transcribeFile(url, projectFolder: projectFolder)
     }
 
     func chooseAudioFile() {
         dismissDone()
-        transcription.chooseAndTranscribeFile(projectFolder: projectStore.folderURL)
+        transcription.chooseAndTranscribeFile(projectFolder: projectFolder)
     }
 
     func viewDone() {
@@ -246,7 +311,7 @@ final class AppState {
     }
 
     func refreshMeetings() {
-        guard let folder = projectStore.folderURL else {
+        guard let folder = projectFolder else {
             meetings = []
             return
         }
@@ -261,9 +326,10 @@ final class AppState {
                 print("  \(meeting.folder.lastPathComponent): \(counts.all) việc, của tôi \(counts.mine)")
             }
             await MainActor.run { [weak self] in
-                guard let self, self.projectStore.folderURL == folder else { return }
+                guard let self, self.projectFolder == folder else { return }
                 self.meetings = list.filter { $0.status != .recording }
                 self.openTaskCount = tasks
+                self.overview.reload(projectFolder: folder, meetings: self.meetings)
             }
         }
     }

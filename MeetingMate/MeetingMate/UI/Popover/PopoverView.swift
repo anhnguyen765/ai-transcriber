@@ -61,7 +61,7 @@ struct PopoverView: View {
             }
         }
         .dropDestination(for: URL.self) { urls, _ in
-            guard projectStore.folderURL != nil,
+            guard app.projectFolder != nil,
                   let file = urls.first(where: Self.isAudioOrVideo) else { return false }
             app.importAudio(file)
             return true

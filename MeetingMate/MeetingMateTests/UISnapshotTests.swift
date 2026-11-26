@@ -159,6 +159,26 @@ struct UISnapshotTests {
         try render(view, name: "f-meeting-detail")
     }
 
+    /// The Dự án section, wide (two columns) and narrow (one column).
+    @Test(.enabled(if: outputFolder != nil))
+    func projectSection() async throws {
+        let project = URL(fileURLWithPath: ProcessInfo.processInfo.environment["LANG_TEST_PROJECT"] ?? "/nonexistent")
+        if FileManager.default.fileExists(atPath: project.path),
+           let bookmark = try? project.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) {
+            UserDefaults.standard.set(bookmark, forKey: "projectFolderBookmark")
+        }
+        let app = AppState(recorder: Recorder(), projectStore: ProjectStore(), transcription: TranscriptionService(),
+                           summary: SummaryService(), indexer: ProjectIndexer(), glossary: GlossaryModel())
+        app.refreshMeetings()
+        try await Task.sleep(for: .seconds(1))
+        for (width, name) in [(1500.0, "g-project-wide"), (950.0, "g-project-medium"), (560.0, "g-project-narrow")] {
+            let view = ProjectSection(app: app, scrolls: false)
+                .frame(width: width, alignment: .topLeading)
+                .background(Color.white)
+            try render(view, name: name)
+        }
+    }
+
     private func render(_ view: some View, name: String) throws {
         let renderer = ImageRenderer(content: view.environment(\.colorScheme, .light))
         renderer.scale = 2

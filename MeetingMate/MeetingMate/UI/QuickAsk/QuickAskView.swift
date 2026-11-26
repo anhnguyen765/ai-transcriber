@@ -143,7 +143,7 @@ struct QuickAskView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 if !turn.sources.isEmpty {
                     LegacySourceChips(answer: turn.answer, sources: turn.sources, open: openSource)
-                    SourceQuotes(sources: turn.sources, projectFolder: app.projectStore.folderURL, router: app.router)
+                    SourceQuotes(sources: turn.sources, projectFolder: app.projectFolder, router: app.router)
                 }
             }
         }
@@ -180,7 +180,7 @@ struct QuickAskView: View {
     }
 
     private func openSource(_ source: AnswerSource) {
-        SourceOpener.open(source, projectFolder: app.projectStore.folderURL, router: app.router)
+        SourceOpener.open(source, projectFolder: app.projectFolder, router: app.router)
         close()
     }
 }

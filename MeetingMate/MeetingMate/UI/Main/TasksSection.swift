@@ -8,18 +8,22 @@ struct TasksSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text("Việc của tôi")
-                .typeStyle(TypeStyle(family: .serif(italic: false), size: 28))
-                .foregroundStyle(.ink)
-            Text(verbatim: "\(tasks.count) việc chưa xong")
-                .typeStyle(.caption)
-                .foregroundStyle(.ink2)
+            VStack(alignment: .leading, spacing: 18) {
+                Text("Việc của tôi")
+                    .typeStyle(TypeStyle(family: .serif(italic: false), size: 28))
+                    .foregroundStyle(.ink)
+                Text(verbatim: "\(tasks.count) việc chưa xong")
+                    .typeStyle(.caption)
+                    .foregroundStyle(.ink2)
+            }
+            .readingColumn()
 
             if tasks.isEmpty {
                 Text("Không có việc nào đang chờ bạn. Việc có người phụ trách là “bạn”, “tôi” hoặc tên bạn trong Cài đặt sẽ hiện ở đây.")
                     .typeStyle(.body)
                     .foregroundStyle(.ink3)
                     .frame(maxWidth: 520, alignment: .leading)
+                    .readingColumn()
             }
 
             ScrollView {
@@ -40,7 +44,7 @@ struct TasksSection: View {
                         }
                     }
                 }
-                .frame(maxWidth: 680, alignment: .leading)
+                .readingColumn()
             }
             .scrollIndicators(.never)
         }
