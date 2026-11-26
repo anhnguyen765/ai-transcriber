@@ -88,6 +88,8 @@ enum Theme {
     }
 
     static let hairline: CGFloat = 1
+    /// Width of text columns in the main window (Hỏi, Việc của tôi, meeting detail); centered when wider.
+    static let readingWidth: CGFloat = 760
 
     // MARK: Shadows (soft only)
 

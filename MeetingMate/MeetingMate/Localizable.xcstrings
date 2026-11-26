@@ -65,6 +65,9 @@
     "⌘C chép câu trả lời" : {
 
     },
+    "3 ưu tiên" : {
+
+    },
     "Add" : {
 
     },
@@ -92,6 +95,9 @@
     "Bản chép lời đã được sửa sau khi tóm tắt. Bản tóm tắt có thể không còn khớp." : {
 
     },
+    "bắt đầu" : {
+
+    },
     "Bắt đầu ghi âm" : {
 
     },
@@ -108,6 +114,12 @@
 
     },
     "Cần quyền Ghi màn hình để thu tiếng người khác. Bật lắng trong Quyền riêng tư → Ghi màn hình & âm thanh hệ thống, rồi mở lại lắng." : {
+
+    },
+    "Cập nhật" : {
+
+    },
+    "cập nhật gần đây" : {
 
     },
     "chạm để bắt đầu · ⌃⌥R" : {
@@ -167,6 +179,9 @@
     "Chọn thư mục dự án trước." : {
 
     },
+    "Chọn thư mục dự án. lắng sẽ đọc tài liệu trong đó và lưu cuộc họp vào thư mục .meetings bên trong." : {
+
+    },
     "Chọn thư mục dự án…" : {
 
     },
@@ -177,6 +192,9 @@
 
     },
     "Chưa có bản tóm tắt cho cuộc họp này." : {
+
+    },
+    "Chưa có cuộc họp nào được tóm tắt." : {
 
     },
     "Chưa có cuộc họp nào." : {
@@ -191,6 +209,15 @@
     "Chưa có tài liệu nào được đọc." : {
 
     },
+    "Chưa có tổng quan. Bấm “Viết tổng quan” để lắng đọc tài liệu và các cuộc họp gần đây rồi tóm lại dự án." : {
+
+    },
+    "Chưa có việc nào từ các cuộc họp gần đây." : {
+
+    },
+    "Chưa dùng được Ollama hoặc model %@, nên chưa viết được tổng quan. Ưu tiên bên dưới lấy tạm từ việc cần làm." : {
+
+    },
     "Chưa tải model %@ để đọc dự án." : {
 
     },
@@ -200,6 +227,9 @@
     "Chưa tải model tóm tắt %@." : {
 
     },
+    "Chưa viết được tổng quan: %@" : {
+
+    },
     "Chung" : {
 
     },
@@ -207,6 +237,9 @@
 
     },
     "Chuyển vào Thùng rác" : {
+
+    },
+    "Có cuộc họp mới từ lần cập nhật trước. Bấm Cập nhật để xếp lại ưu tiên." : {
 
     },
     "Cỡ file tối đa: %.1f MB" : {
@@ -254,6 +287,9 @@
     "Đã đọc xong dự án, sẵn sàng để hỏi." : {
 
     },
+    "Đã dừng. Bấm Cập nhật để thử lại." : {
+
+    },
     "Đã ghi %@" : {
 
     },
@@ -270,6 +306,9 @@
 
     },
     "đang chờ chép lời xong…" : {
+
+    },
+    "Đang chờ chép lời/tóm tắt xong…" : {
 
     },
     "đang chờ tóm tắt cuộc trước xong…" : {
@@ -292,6 +331,9 @@
       }
     },
     "Đang đọc tài liệu dự án…" : {
+
+    },
+    "Đang đọc tài liệu và cuộc họp gần đây…" : {
 
     },
     "Đang ghi âm." : {
@@ -358,16 +400,28 @@
     "Đeo tai nghe để lắng tách giọng bạn rõ hơn." : {
 
     },
+    "Đọc lại" : {
+
+    },
     "Đọc lại dự án" : {
 
     },
     "Đổi dự án" : {
 
     },
+    "Đổi thư mục…" : {
+
+    },
     "Đổi tốc độ phát" : {
 
     },
     "Đổi…" : {
+
+    },
+    "dự án này là gì" : {
+
+    },
+    "Dừng" : {
 
     },
     "Dừng & lưu" : {
@@ -418,19 +472,16 @@
     "Ghi thử" : {
 
     },
-    "Glossary · %@" : {
-
-    },
     "gõ “ghi” để bắt đầu ghi âm" : {
 
     },
     "Gõ câu hỏi trước." : {
 
     },
-    "Gợi ý thuật ngữ" : {
+    "Gợi ý thuật ngữ từ dự án" : {
 
     },
-    "Gợi ý thuật ngữ từ dự án" : {
+    "Gợi ý từ dự án" : {
 
     },
     "Hiện ô nhỏ cạnh notch khi đang ghi" : {
@@ -484,10 +535,16 @@
     "Không có việc nào đang chờ bạn. Việc có người phụ trách là “bạn”, “tôi” hoặc tên bạn trong Cài đặt sẽ hiện ở đây." : {
 
     },
+    "Không có việc nào đang mở trong các cuộc họp gần đây." : {
+
+    },
     "Không đổi dự án được khi đang ghi âm." : {
 
     },
     "Không lưu được bản chép lời: %@" : {
+
+    },
+    "Không lưu được overview.json: %@" : {
 
     },
     "Không lưu được: %@" : {
@@ -524,6 +581,9 @@
 
     },
     "Last indexed" : {
+
+    },
+    "Lấy tạm từ việc cần làm. Bấm Cập nhật để lắng xếp hạng." : {
 
     },
     "liên quan" : {
@@ -596,6 +656,9 @@
 
     },
     "Mở thư mục prompt" : {
+
+    },
+    "Model mất hơn %lld giây." : {
 
     },
     "Move %lld audio files (%@) to the Trash?" : {
@@ -808,6 +871,9 @@
 
     },
     "Việc của tôi" : {
+
+    },
+    "Viết tổng quan" : {
 
     },
     "Waiting for transcription/summary to finish…" : {

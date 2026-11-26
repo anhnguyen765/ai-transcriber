@@ -241,6 +241,16 @@ final class GlossaryModel: ObservableObject {
         [.collecting, .waitingForModel, .cleaning].contains(phase)
     }
 
+    /// The project changed: drop the old project's list. A suggestion still running for the old project
+    /// finishes in the background and is thrown away (see `suggest`).
+    func reset(for projectFolder: URL?) {
+        guard projectFolder?.standardizedFileURL != self.projectFolder?.standardizedFileURL else { return }
+        self.projectFolder = projectFolder
+        items = []
+        note = nil
+        if !isWorking { phase = .idle }
+    }
+
     /// Builds suggestions for the indexer's current project.
     func suggest(store: IndexStore?, projectFolder: URL?) {
         guard !isWorking else { return }
@@ -272,6 +282,13 @@ final class GlossaryModel: ObservableObject {
                 suggested = GlossarySuggester.reconcile(cleaned, with: candidates)
             } else {
                 note = "Ollama or the model isn't available, so this list wasn't cleaned by the LLM. Untick what you don't need."
+            }
+
+            // The project was switched while we worked: these terms belong to the old one.
+            guard self.projectFolder == projectFolder else {
+                note = nil
+                phase = .idle
+                return
             }
 
             let existingKeys = Set(existing.map { $0.lowercased() })

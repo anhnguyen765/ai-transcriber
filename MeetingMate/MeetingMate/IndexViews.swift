@@ -3,19 +3,28 @@ import SwiftUI
 /// "Suggest Glossary from Project": tick the names/terms to save into .meetings/glossary.txt.
 struct GlossaryView: View {
     @ObservedObject var model: GlossaryModel
+    /// Inside a card of the Dự án section: the card gives the title and padding.
+    var embedded = false
     @State private var newTerm = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Glossary · \(model.projectFolder?.lastPathComponent ?? "")").font(.headline)
-                Spacer()
-                Button("Select All") { model.setAll(true) }.disabled(model.items.isEmpty)
-                Button("Select None") { model.setAll(false) }.disabled(model.items.isEmpty)
+            if embedded {
+                // One row: the hint on the left, Select All / None on the right.
+                HStack(alignment: .firstTextBaseline) {
+                    hint
+                    Spacer(minLength: 12)
+                    selectButtons
+                }
+            } else {
+                HStack {
+                    Text(verbatim: model.projectFolder.map { "Glossary · \($0.lastPathComponent)" } ?? "Glossary")
+                        .font(.headline)
+                    Spacer()
+                    selectButtons
+                }
+                hint
             }
-            Text("Ticked terms go to .meetings/glossary.txt. Whisper uses them as a spelling hint for names and jargon.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
 
             switch model.phase {
             case .collecting: ProgressView("Collecting names and terms from the index…")
@@ -45,7 +54,7 @@ struct GlossaryView: View {
                     }
                 }
             }
-            .frame(minHeight: 260)
+            .frame(minHeight: embedded ? 160 : 260)
 
             HStack {
                 TextField("Add a term", text: $newTerm)
@@ -58,8 +67,20 @@ struct GlossaryView: View {
                     .disabled(model.isWorking || model.projectFolder == nil)
             }
         }
-        .padding(12)
-        .frame(minWidth: 480, minHeight: 460)
+        .padding(embedded ? 0 : 12)
+        .frame(minWidth: embedded ? nil : 480, minHeight: embedded ? nil : 460)
+    }
+
+    private var hint: some View {
+        Text("Ticked terms go to .meetings/glossary.txt. Whisper uses them as a spelling hint for names and jargon.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+    }
+
+    @ViewBuilder
+    private var selectButtons: some View {
+        Button("Select All") { model.setAll(true) }.disabled(model.items.isEmpty)
+        Button("Select None") { model.setAll(false) }.disabled(model.items.isEmpty)
     }
 }
 

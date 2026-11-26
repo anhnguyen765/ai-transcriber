@@ -24,7 +24,9 @@ struct AskSection: View {
                         .buttonStyle(.lang(.pill, radius: Theme.Radius.pill))
                 }
             }
+            .readingColumn()
             ScopeChips(options: AskViewModel.Scope.allCases.map { ($0, $0.title) }, selection: $ask.scope)
+                .readingColumn()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
@@ -40,10 +42,10 @@ struct AskSection: View {
                         .padding(.top, 20)
                     }
                     ForEach(ask.turns) { turn in
-                        AskTurn(turn: turn, projectFolder: app.projectStore.folderURL, router: app.router)
+                        AskTurn(turn: turn, projectFolder: app.projectFolder, router: app.router)
                     }
                 }
-                .frame(maxWidth: 680, alignment: .leading)
+                .readingColumn()
                 .padding(.bottom, 12)
             }
             .scrollIndicators(.never)
@@ -73,7 +75,7 @@ struct AskSection: View {
                 .disabled(because: ask.input.trimmingCharacters(in: .whitespaces).isEmpty
                           ? String(localized: "Gõ câu hỏi trước.") : nil)
             }
-            .frame(maxWidth: 680)
+            .readingColumn()
         }
         .padding(36)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
