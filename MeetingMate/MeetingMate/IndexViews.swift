@@ -17,15 +17,30 @@ struct GlossaryView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            switch model.phase {
-            case .collecting: ProgressView("Collecting names and terms from the index…")
-            case .waitingForModel: ProgressView("Waiting for transcription/summary to finish…")
-            case .cleaning: ProgressView("Asking \(AppSettings.llmModel) to clean the list…")
-            case .failed(let message): Text(message).foregroundStyle(.red)
-            case .idle, .ready: EmptyView()
+            // Status row: what is happening, with a Stop button while it runs.
+            if model.isWorking {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text(statusText).font(.callout)
+                    Spacer()
+                    Button("Stop") { model.stop() }
+                        .keyboardShortcut(.cancelAction)
+                }
+                .padding(8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
+            }
+            if case .failed(let message) = model.phase {
+                Text(message).foregroundStyle(.red)
             }
             if let note = model.note {
                 Text(note).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+
+            if model.items.isEmpty && !model.isWorking {
+                Text("No terms yet. Try again, or add terms below.")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 120)
             }
 
             List($model.items) { $item in
@@ -53,6 +68,8 @@ struct GlossaryView: View {
                     .onSubmit { model.addTerm(newTerm); newTerm = "" }
                 Button("Add") { model.addTerm(newTerm); newTerm = "" }.disabled(newTerm.isEmpty)
                 Spacer()
+                Button("Try Again") { model.retry() }
+                    .disabled(model.isWorking || model.projectFolder == nil)
                 Button("Save to glossary.txt") { model.save() }
                     .buttonStyle(.borderedProminent)
                     .disabled(model.isWorking || model.projectFolder == nil)
@@ -60,6 +77,15 @@ struct GlossaryView: View {
         }
         .padding(12)
         .frame(minWidth: 480, minHeight: 460)
+    }
+
+    private var statusText: String {
+        switch model.phase {
+        case .collecting: "Collecting names and terms from the index…"
+        case .waitingForModel: "Waiting for transcription/summary to finish…"
+        case .cleaning: "Asking \(AppSettings.llmModel) to clean the list… (up to 3 min)"
+        default: ""
+        }
     }
 }
 

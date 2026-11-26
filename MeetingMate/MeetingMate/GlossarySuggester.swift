@@ -232,6 +232,9 @@ final class GlossaryModel: ObservableObject {
     @Published private(set) var projectFolder: URL?
 
     private let client: LLMClient
+    /// The running suggestion, so the user can stop it.
+    private var work: Task<Void, Never>?
+    private var lastStore: IndexStore?
 
     init(client: LLMClient = OllamaClient()) {
         self.client = client
@@ -249,11 +252,12 @@ final class GlossaryModel: ObservableObject {
             return
         }
         self.projectFolder = projectFolder
+        self.lastStore = store
         note = nil
         items = []
         phase = .collecting
 
-        Task {
+        work = Task {
             // Existing glossary entries stay ticked.
             let existingText = (try? String(contentsOf: GlossarySuggester.glossaryURL(projectFolder: projectFolder),
                                              encoding: .utf8)) ?? ""
@@ -271,8 +275,10 @@ final class GlossaryModel: ObservableObject {
             } else if let cleaned = await cleanWithLLM(candidates) {
                 suggested = GlossarySuggester.reconcile(cleaned, with: candidates)
             } else {
-                note = "Ollama or the model isn't available, so this list wasn't cleaned by the LLM. Untick what you don't need."
+                note = "Ollama or the model isn't available, or it took too long, so this list wasn't cleaned by the LLM. Untick what you don't need."
             }
+            // The user pressed Stop while we were waiting: the stop already reset the window.
+            guard !Task.isCancelled else { return }
 
             let existingKeys = Set(existing.map { $0.lowercased() })
             items = existing.map { Item(term: $0, count: 0, kind: "", selected: true, alreadyInGlossary: true) }
@@ -284,7 +290,8 @@ final class GlossaryModel: ObservableObject {
         }
     }
 
-    /// Asks the summary LLM to clean the list; nil if Ollama/the model isn't available.
+    /// Asks the summary LLM to clean the list; nil if Ollama/the model isn't available,
+    /// it takes too long, or the user stopped the work.
     private func cleanWithLLM(_ candidates: [GlossarySuggester.Candidate]) async -> GlossarySuggester.CleanedList? {
         let model = AppSettings.llmModel
         guard await client.isRunning(),
@@ -293,19 +300,56 @@ final class GlossaryModel: ObservableObject {
 
         phase = .waitingForModel
         await HeavyWorkLock.shared.acquire() // never next to WhisperKit or another LLM job
+        // Stopped while waiting for the lock: hand it straight back.
+        guard !Task.isCancelled else {
+            await HeavyWorkLock.shared.release()
+            return nil
+        }
         phase = .cleaning
+        let llm = client
         defer {
             Task {
-                await client.unload(model: model)
+                await llm.unload(model: model)
                 await HeavyWorkLock.shared.release()
             }
         }
         let options = LLMChatOptions(model: model, jsonSchema: GlossarySuggester.schema, temperature: 0.1)
-        guard let reply = try? await client.chat(
-            messages: [.system("Bạn giúp lọc danh sách tên riêng và thuật ngữ. Chỉ trả lời bằng JSON."),
-                       .user(GlossarySuggester.cleanupPrompt(candidates))],
-            options: options, onProgress: { _ in }) else { return nil }
+        let messages: [LLMMessage] = [.system("Bạn giúp lọc danh sách tên riêng và thuật ngữ. Chỉ trả lời bằng JSON."),
+                                      .user(GlossarySuggester.cleanupPrompt(candidates))]
+        // A stuck model must not keep the lock (and this window) forever.
+        guard let reply = try? await Self.withTimeout(seconds: 180, {
+            try await llm.chat(messages: messages, options: options, onProgress: { _ in })
+        }) else { return nil }
         return try? SummarySchema.parse(GlossarySuggester.CleanedList.self, from: reply)
+    }
+
+    /// Runs `work`, but throws if it hasn't finished after `seconds`. Cancels `work` on timeout.
+    private static func withTimeout<T>(seconds: Double, _ work: @escaping () async throws -> T) async throws -> T {
+        try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask { try await work() }
+            group.addTask {
+                try await Task.sleep(for: .seconds(seconds))
+                throw LLMError.server("The model took longer than \(Int(seconds)) seconds.")
+            }
+            defer { group.cancelAll() }
+            guard let first = try await group.next() else { throw CancellationError() }
+            return first
+        }
+    }
+
+    /// Stops a running suggestion. The window goes back to a usable state with what it has.
+    func stop() {
+        guard isWorking else { return }
+        work?.cancel()
+        work = nil
+        note = "Stopped. Save what you want, or try again."
+        phase = .ready
+    }
+
+    /// Runs the suggestion again for the same project.
+    func retry() {
+        guard let projectFolder else { return }
+        suggest(store: lastStore, projectFolder: projectFolder)
     }
 
     func addTerm(_ term: String) {
