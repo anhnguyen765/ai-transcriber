@@ -9,14 +9,9 @@ struct MeetingMateApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            MenuView(recorder: appDelegate.recorder,
-                     projectStore: appDelegate.projectStore,
-                     transcription: appDelegate.transcription,
-                     summary: appDelegate.summary,
-                     indexer: appDelegate.indexer,
-                     glossary: appDelegate.glossary)
+            PopoverView(app: appDelegate.appState)
         } label: {
-            MenuBarIcon(recorder: appDelegate.recorder) { appDelegate.openWindowAction = $0 }
+            MenuBarIcon(app: appDelegate.appState) { appDelegate.openWindowAction = $0 }
         }
         .menuBarExtraStyle(.window) // a small panel instead of a plain menu
 
@@ -25,23 +20,10 @@ struct MeetingMateApp: App {
         }
         .defaultLaunchBehavior(.suppressed) // only opens from the menu
 
-        Window("Hỏi lắng", id: "ask") {
-            AskWindow(model: appDelegate.ask, projectStore: appDelegate.projectStore)
+        Window("lắng", id: "main") {
+            MainWindow(app: appDelegate.appState)
         }
-        .defaultLaunchBehavior(.suppressed)
-
-        // Opened from an Ask answer's meeting source: transcript at the cited time + audio.
-        WindowGroup("Cuộc họp", id: "meeting", for: MeetingRef.self) { $ref in
-            if let ref {
-                MeetingViewer(ref: ref)
-            }
-        }
-        .defaultLaunchBehavior(.suppressed)
-
-        Window("Cuộc họp", id: "meetings") {
-            MeetingsLibraryView(model: appDelegate.library, transcription: appDelegate.transcription,
-                                summary: appDelegate.summary)
-        }
+        .defaultSize(width: 1280, height: 840)
         .defaultLaunchBehavior(.suppressed)
 
         Window("Thiết lập lắng", id: "onboarding") {
@@ -50,44 +32,11 @@ struct MeetingMateApp: App {
         .windowResizability(.contentSize)
         .defaultLaunchBehavior(.suppressed)
 
-        Window("Glossary", id: "glossary") {
-            GlossaryView(model: appDelegate.glossary)
-        }
-        .defaultLaunchBehavior(.suppressed)
 
         Settings {
             SettingsView(indexer: appDelegate.indexer)
         }
     }
-}
-
-/// "waveform" when idle, red "record.circle.fill" while recording.
-private struct MenuBarIcon: View {
-    @ObservedObject var recorder: Recorder
-    /// Hands SwiftUI's openWindow to the AppDelegate, so global hotkeys can open windows.
-    let provideOpenWindow: (OpenWindowAction) -> Void
-    @Environment(\.openWindow) private var openWindow
-
-    var body: some View {
-        Group {
-            if recorder.isRecording, let red = Self.redRecordImage {
-                Image(nsImage: red)
-            } else {
-                Image(systemName: "waveform")
-            }
-        }
-        .onAppear { provideOpenWindow(openWindow) } // the icon exists from launch on
-    }
-
-    /// Menu bar icons are normally drawn black/white only. To get a red icon we build an
-    /// NSImage with a red symbol color and mark it as "not a template".
-    private static let redRecordImage: NSImage? = {
-        let config = NSImage.SymbolConfiguration(hierarchicalColor: .systemRed)
-        let image = NSImage(systemSymbolName: "record.circle.fill", accessibilityDescription: "Recording")?
-            .withSymbolConfiguration(config)
-        image?.isTemplate = false
-        return image
-    }()
 }
 
 @MainActor
@@ -100,11 +49,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     let glossary = GlossaryModel()
     let meetingDetector = MeetingDetector()
     lazy var ask = AskViewModel(indexer: indexer)
-    lazy var library = MeetingsLibraryModel(indexer: indexer, transcription: transcription, summary: summary)
     lazy var onboarding = OnboardingModel(recorder: recorder, projectStore: projectStore)
+    /// Shared UI state + Router for the popover, menu bar icon and (later) main window / Quick Ask.
+    /// ⌃⌥Space: the floating Quick Ask panel.
+    lazy var quickAsk = QuickAskController(app: appState)
+    lazy var appState = AppState(recorder: recorder, projectStore: projectStore, transcription: transcription,
+                                 summary: summary, indexer: indexer, glossary: glossary, ask: ask)
     /// SwiftUI's window opener, handed over by the menu bar icon (for hotkeys).
     var openWindowAction: OpenWindowAction? {
         didSet {
+            appState.router.openWindow = openWindowAction
             // First launch: show the setup window once SwiftUI can open windows.
             if oldValue == nil, openWindowAction != nil, !OnboardingModel.isDone {
                 NSApp.activate()
@@ -112,6 +66,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             }
         }
     }
+    /// The small recording pill beside the notch (created once at launch).
+    private var notchIsland: NotchIslandController?
     private var isQuitting = false
     private var isPoweringOff = false
 
@@ -169,24 +125,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         }
     }
 
+    /// A recording under 15 seconds: ask before throwing it away. Returns true if it was deleted.
+    private func askToDiscardShort(_ folder: URL, seconds: Double) -> Bool {
+        NSApp.activate()
+        let alert = NSAlert()
+        alert.messageText = "Bản ghi chỉ \(Int(seconds)) giây"
+        alert.informativeText = "Bản ghi này quá ngắn để tóm tắt. Xoá bản ghi này, hay giữ lại?"
+        alert.addButton(withTitle: "Xoá")
+        alert.addButton(withTitle: "Giữ lại")
+        guard alert.runModal() == .alertFirstButtonReturn else { return false }
+        try? FileManager.default.removeItem(at: folder)
+        appState.refreshMeetings()
+        return true
+    }
+
     /// ⌃⌥Space from any app.
     func openAskWindow() {
-        NSApp.activate()
-        openWindowAction?(id: "ask")
+        quickAsk.toggle()
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Lets us react when a "done" notification is clicked.
         UNUserNotificationCenter.current().delegate = self
+        notchIsland = NotchIslandController(app: appState)
+        FontRegistry.logResolvedNames()
         // Editable prompt files in Application Support/Lang/Prompts.
         PromptStore.createMissingDefaults()
 
         // Recording → transcript → summary (each step only if enabled in Settings).
         recorder.onRecordingSaved = { [weak self] folder in
-            guard let self, !self.isQuitting, AppSettings.autoTranscribe else { return }
+            guard let self, !self.isQuitting else { return }
+            // Very short recordings: ask before discarding; "Giữ lại" transcribes as usual.
+            if AppSettings.skipShortRecordings, let meta = try? MeetingMeta.load(from: folder),
+               meta.durationSeconds < AppSettings.shortRecordingSeconds,
+               self.askToDiscardShort(folder, seconds: meta.durationSeconds) {
+                return
+            }
+            guard AppSettings.autoTranscribe else { return }
             self.transcription.transcribeMeeting(at: folder)
         }
         transcription.onTranscribed = { [weak self] folder in
+            self?.appState.meetingTranscribed(folder)
             guard let self, !self.isQuitting, AppSettings.autoSummarize else { return }
             self.summary.summarizeMeeting(at: folder)
         }

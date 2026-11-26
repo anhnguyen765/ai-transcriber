@@ -323,7 +323,10 @@ final class SummaryService: ObservableObject {
     /// Meetings that couldn't be summarized because of a Problem; retried when it's fixed.
     private var pending: [URL] = []
     private var runner: Task<Void, Never>?
-    private var currentFolder: URL?
+    /// The meeting being summarized right now (shown in the popover's pipeline card).
+    @Published private(set) var currentFolder: URL?
+    /// How many project documents the current summary is using (nil = not known yet / no context).
+    @Published private(set) var contextDocumentCount: Int?
 
     init(client: LLMClient = OllamaClient()) {
         self.client = client
@@ -438,6 +441,7 @@ final class SummaryService: ObservableObject {
 
     private func run(folder: URL, model: String) async {
         phase = .checking
+        contextDocumentCount = nil
         let began = Date()
         guard var meta = try? MeetingMeta.load(from: folder) else {
             errorMessage = "Can't read meta.json in \(folder.lastPathComponent)."
@@ -488,7 +492,11 @@ final class SummaryService: ObservableObject {
         if AppSettings.useProjectContext, let retriever = retrieverProvider(meta.projectPath) {
             let thisMeeting = ".meetings/\(folder.lastPathComponent)/" // never cite the meeting itself
             pipeline.retrieveContext = { queries in
-                (try? await retriever.search(queries: queries, limit: 8, excludingPathPrefix: thisMeeting)) ?? []
+                let found = (try? await retriever.search(queries: queries, limit: 8,
+                                                         excludingPathPrefix: thisMeeting)) ?? []
+                let documents = Set(found.map(\.path)).count
+                await MainActor.run { self.contextDocumentCount = documents }
+                return found
             }
         }
         do {

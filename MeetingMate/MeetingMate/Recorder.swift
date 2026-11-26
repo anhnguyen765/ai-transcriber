@@ -69,6 +69,10 @@ final class Recorder: ObservableObject {
 
     var isRecording: Bool { state == .recording }
 
+    /// Live mic/system loudness while recording (for the ripple animation). Separate object,
+    /// so its 30 updates a second don't redraw everything that watches the recorder.
+    let levels = AudioLevels()
+
     /// Called with the meeting folder after a recording is saved (used to start transcription).
     var onRecordingSaved: ((URL) -> Void)?
     /// The onboarding's 10-second test: saved, but not transcribed/summarized automatically.
@@ -149,6 +153,7 @@ final class Recorder: ObservableObject {
         Log.info("Recording started: \(session.lastPathComponent)")
         state = .recording
         startTimer()
+        levels.start(mic: mic.level, system: system.level)
     }
 
     // MARK: - Stop
@@ -162,6 +167,7 @@ final class Recorder: ObservableObject {
         let duration = Date().timeIntervalSince(startDate)
         timer?.invalidate()
         timer = nil
+        levels.stop()
 
         mic.stop(at: stopHostTime)
         _ = await system.stop(at: stopHostTime)
