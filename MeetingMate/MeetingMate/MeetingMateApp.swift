@@ -16,7 +16,9 @@ struct MeetingMateApp: App {
                      indexer: appDelegate.indexer,
                      glossary: appDelegate.glossary)
         } label: {
-            MenuBarIcon(recorder: appDelegate.recorder) { appDelegate.openWindowAction = $0 }
+            MenuBarIcon(recorder: appDelegate.recorder,
+                        transcription: appDelegate.transcription,
+                        summary: appDelegate.summary) { appDelegate.openWindowAction = $0 }
         }
         .menuBarExtraStyle(.window) // a small panel instead of a plain menu
 
@@ -55,39 +57,61 @@ struct MeetingMateApp: App {
         }
         .defaultLaunchBehavior(.suppressed)
 
+        #if DEBUG
+        Window("Icon Lab", id: "icon-lab") {
+            IconLabView()
+        }
+        .defaultLaunchBehavior(.suppressed)
+        #endif
+
         Settings {
             SettingsView(indexer: appDelegate.indexer)
         }
     }
 }
 
-/// "waveform" when idle, red "record.circle.fill" while recording.
+/// Menu bar icon (see MenuBarGlyph): idle bowl + layers + drop; a red dot while recording;
+/// layers fill bottom → top while transcribing/summarizing; a check briefly when that finishes.
 private struct MenuBarIcon: View {
     @ObservedObject var recorder: Recorder
+    @ObservedObject var transcription: TranscriptionService
+    @ObservedObject var summary: SummaryService
     /// Hands SwiftUI's openWindow to the AppDelegate, so global hotkeys can open windows.
     let provideOpenWindow: (OpenWindowAction) -> Void
     @Environment(\.openWindow) private var openWindow
 
-    var body: some View {
-        Group {
-            if recorder.isRecording, let red = Self.redRecordImage {
-                Image(nsImage: red)
-            } else {
-                Image(systemName: "waveform")
-            }
-        }
-        .onAppear { provideOpenWindow(openWindow) } // the icon exists from launch on
+    @State private var processingStep = 0
+    @State private var showDone = false
+    private let ticker = Timer.publish(every: 0.35, on: .main, in: .common).autoconnect()
+    /// Layers filled per step: fill up, hold the full bowl for one step, then clear.
+    private static let cycle = [0, 1, 2, 3, 3]
+
+    private var busy: Bool {
+        transcription.phase != .idle || summary.phase != .idle
     }
 
-    /// Menu bar icons are normally drawn black/white only. To get a red icon we build an
-    /// NSImage with a red symbol color and mark it as "not a template".
-    private static let redRecordImage: NSImage? = {
-        let config = NSImage.SymbolConfiguration(hierarchicalColor: .systemRed)
-        let image = NSImage(systemSymbolName: "record.circle.fill", accessibilityDescription: "Recording")?
-            .withSymbolConfiguration(config)
-        image?.isTemplate = false
-        return image
-    }()
+    private var glyph: MenuBarGlyphState {
+        if recorder.isRecording { return .recording }
+        if busy { return .processing(Self.cycle[processingStep % Self.cycle.count]) }
+        if showDone { return .done }
+        return .idle
+    }
+
+    var body: some View {
+        Image(nsImage: MenuBarGlyph.image(for: glyph))
+            .onAppear { provideOpenWindow(openWindow) } // the icon exists from launch on
+            .onReceive(ticker) { _ in
+                if busy { processingStep += 1 }
+            }
+            .onChange(of: busy) { wasBusy, isBusy in
+                guard wasBusy, !isBusy else { return }
+                showDone = true
+                Task {
+                    try? await Task.sleep(for: .seconds(2.5))
+                    showDone = false
+                }
+            }
+    }
 }
 
 @MainActor

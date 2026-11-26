@@ -62,6 +62,8 @@ struct AskWindow: View {
 
     private var header: some View {
         HStack {
+            LangMark(params: LangMarkParams(variant: .flat, showTrail: false))
+                .frame(width: 22, height: 22)
             Image(systemName: "folder")
             Text(model.projectName).font(.headline)
             Button("Đổi…") { projectStore.chooseFolder() }

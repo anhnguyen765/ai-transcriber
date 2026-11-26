@@ -76,6 +76,8 @@ struct MenuView: View {
             Divider()
 
             // Record / Stop
+            LangRecordMark(isRecording: recorder.isRecording)
+                .frame(maxWidth: .infinity)
             if recorder.isRecording {
                 HStack(spacing: 6) {
                     Circle().fill(.red).frame(width: 8, height: 8)
@@ -242,6 +244,12 @@ struct MenuView: View {
             .disabled(indexer.store == nil || glossary.isWorking)
             Button("Open Recordings Folder", action: openRecordingsFolder)
                 .disabled(projectStore.folderURL == nil)
+            #if DEBUG
+            Button("Icon Lab…") {
+                NSApp.activate()
+                openWindow(id: "icon-lab")
+            }
+            #endif
             Button("Settings…") {
                 NSApp.activate() // bring the Settings window to the front
                 openSettings()
