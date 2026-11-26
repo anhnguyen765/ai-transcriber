@@ -20,6 +20,9 @@ final class SystemAudioRecorder: NSObject, SCStreamOutput, SCStreamDelegate {
     private let outputFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32,
                                              sampleRate: 48_000, channels: 1, interleaved: false)!
 
+    /// Live loudness for the UI (read-only measurement, does not affect the file).
+    let level = AudioLevelMeter()
+
     /// Called if macOS stops the capture by itself (e.g. permission revoked).
     var onStreamError: ((String) -> Void)?
 
@@ -80,6 +83,7 @@ final class SystemAudioRecorder: NSObject, SCStreamOutput, SCStreamDelegate {
         let time = sampleBuffer.presentationTimeStamp
         guard time >= startTime, time < stopTime, let buffer = Self.pcmBuffer(from: sampleBuffer),
               let samples = convertIfNeeded(buffer) else { return }
+        level.ingest(samples)
 
         // A gap (e.g. nothing played for a moment) becomes silence, so system.m4a and mic.m4a stay aligned.
         if let expected = nextExpected {

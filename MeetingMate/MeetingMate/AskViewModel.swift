@@ -172,8 +172,12 @@ final class AskViewModel: ObservableObject {
         task?.cancel()
     }
 
+    /// Set while a meeting's inspector asks "cuộc họp này": only that meeting's folder is searched.
+    var meetingPathPrefix: String?
+
     private func baseFilter() -> SearchFilter {
         var filter = SearchFilter()
+        filter.pathPrefix = meetingPathPrefix
         switch scope {
         case .all: break
         case .meetings: filter.sourceTypes = [.meeting]

@@ -1,0 +1,860 @@
+{
+  "sourceLanguage" : "vi",
+  "strings" : {
+    "" : {
+
+    },
+    "%@ · %lld việc cần làm" : {
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$lld việc cần làm"
+          }
+        }
+      }
+    },
+    "%lld" : {
+
+    },
+    "%lld files · %lld chunks" : {
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld files · %2$lld chunks"
+          }
+        }
+      }
+    },
+    "%lld tài liệu · %lld cuộc họp" : {
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld tài liệu · %2$lld cuộc họp"
+          }
+        }
+      }
+    },
+    "%lld. %@" : {
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld. %2$@"
+          }
+        }
+      }
+    },
+    "%lld%%" : {
+
+    },
+    "↵ mở trong lắng" : {
+
+    },
+    "×%lld" : {
+
+    },
+    "<1 phút" : {
+
+    },
+    "~%lld phút" : {
+
+    },
+    "⌘C chép câu trả lời" : {
+
+    },
+    "Add" : {
+
+    },
+    "Add a term" : {
+
+    },
+    "Ẩn" : {
+
+    },
+    "Asking %@ to clean the list…" : {
+
+    },
+    "Audio of this project" : {
+
+    },
+    "Audio, bản chép lời và bản tóm tắt sẽ bị xoá vĩnh viễn. Không hoàn tác được." : {
+
+    },
+    "bạn" : {
+
+    },
+    "bạn %lld%%" : {
+
+    },
+    "Bản chép lời đã được sửa sau khi tóm tắt. Bản tóm tắt có thể không còn khớp." : {
+
+    },
+    "Bắt đầu ghi âm" : {
+
+    },
+    "bge-m3 (~1.2 GB) hiểu tiếng Việt. Đổi mô hình sẽ nhúng lại toàn bộ dự án." : {
+
+    },
+    "Bỏ đánh dấu xong" : {
+
+    },
+    "Cài đặt và công cụ" : {
+
+    },
+    "Cài đặt…" : {
+
+    },
+    "Cần quyền Ghi màn hình để thu tiếng người khác. Bật lắng trong Quyền riêng tư → Ghi màn hình & âm thanh hệ thống, rồi mở lại lắng." : {
+
+    },
+    "chạm để bắt đầu · ⌃⌥R" : {
+
+    },
+    "Chào mừng tới lắng" : {
+
+    },
+    "Chạy lại thiết lập…" : {
+
+    },
+    "chép lời" : {
+
+    },
+    "Chép lời" : {
+
+    },
+    "Chép lời lại" : {
+
+    },
+    "Chép lời lại cuộc họp gần nhất" : {
+
+    },
+    "Chép nhật ký" : {
+
+    },
+    "Chỉ hoạt động với bản lắng trong /Applications (bản này chạy từ %@)." : {
+
+    },
+    "Chỉ mục dự án" : {
+
+    },
+    "Chỉ xoá audio của cuộc họp cũ hơn 30 ngày và đã có bản chép lời. Bản chép lời và tóm tắt được giữ lại." : {
+
+    },
+    "Chỉ xoá chỉ mục trong Application Support. File dự án của bạn không bị động vào. Dùng \"Đọc lại dự án\" để tạo lại." : {
+
+    },
+    "Cho phép" : {
+
+    },
+    "Cho phép micro" : {
+
+    },
+    "Chọn thư mục để bắt đầu" : {
+
+    },
+    "chọn thư mục dự án để bắt đầu" : {
+
+    },
+    "Chọn thư mục dự án trước khi ghi âm." : {
+
+    },
+    "Chọn thư mục dự án trước khi mở file." : {
+
+    },
+    "Chọn thư mục dự án trước." : {
+
+    },
+    "Chọn thư mục dự án…" : {
+
+    },
+    "Chọn thư mục…" : {
+
+    },
+    "Chưa chọn thư mục dự án." : {
+
+    },
+    "Chưa có bản tóm tắt cho cuộc họp này." : {
+
+    },
+    "Chưa có cuộc họp nào." : {
+
+    },
+    "Chưa có dự án" : {
+
+    },
+    "Chưa có tài liệu nào được đọc" : {
+
+    },
+    "Chưa có tài liệu nào được đọc." : {
+
+    },
+    "Chưa tải model %@ để đọc dự án." : {
+
+    },
+    "Chưa tải model %@: chỉ tìm được theo từ khóa." : {
+
+    },
+    "Chưa tải model tóm tắt %@." : {
+
+    },
+    "Chung" : {
+
+    },
+    "Chunks" : {
+
+    },
+    "Chuyển vào Thùng rác" : {
+
+    },
+    "Cỡ file tối đa: %.1f MB" : {
+
+    },
+    "Collecting names and terms from the index…" : {
+
+    },
+    "còn %lld cuộc họp chờ" : {
+
+    },
+    "Công cụ" : {
+
+    },
+    "Cuộc họp" : {
+
+    },
+    "Cuộc họp %@" : {
+
+    },
+    "Cuộc họp chưa có bản tóm tắt hay bản chép lời." : {
+
+    },
+    "Cuộc họp mới" : {
+
+    },
+    "Cuộc họp này chưa có bản chép lời." : {
+
+    },
+    "Cuộc họp này không có việc cần làm." : {
+
+    },
+    "Cuộc trò chuyện mới" : {
+
+    },
+    "Đã bật, mở lại lắng" : {
+
+    },
+    "đã chép lời xong · chưa có bản tóm tắt" : {
+
+    },
+    "đã có" : {
+
+    },
+    "Đã đọc xong dự án, sẵn sàng để hỏi." : {
+
+    },
+    "Đã ghi %@" : {
+
+    },
+    "đã lắng" : {
+
+    },
+    "Đã lắng xong" : {
+
+    },
+    "Đang bắt đầu ghi…" : {
+
+    },
+    "đang chép lời · %lld%%" : {
+
+    },
+    "đang chờ chép lời xong…" : {
+
+    },
+    "đang chờ tóm tắt cuộc trước xong…" : {
+
+    },
+    "đang chuẩn bị file…" : {
+
+    },
+    "Đang đọc dự án." : {
+
+    },
+    "đang đọc dự án… %lld/%lld" : {
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "đang đọc dự án… %1$lld/%2$lld"
+          }
+        }
+      }
+    },
+    "Đang đọc tài liệu dự án…" : {
+
+    },
+    "Đang ghi âm." : {
+
+    },
+    "Đang ghi âm. Bấm để dừng." : {
+
+    },
+    "Đang ghi âm. Mở lắng" : {
+
+    },
+    "đang ghi vào .meetings" : {
+
+    },
+    "đang kiểm tra Ollama…" : {
+
+    },
+    "đang lắng…" : {
+
+    },
+    "đang lưu bản ghi…" : {
+
+    },
+    "đang nạp model chép lời…" : {
+
+    },
+    "đang tải model chép lời · %lld%%" : {
+
+    },
+    "đang tải model tóm tắt · %lld%%" : {
+
+    },
+    "Đang tìm trong dự án…" : {
+
+    },
+    "đang tóm tắt" : {
+
+    },
+    "đang tóm tắt phần %lld/%lld" : {
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "đang tóm tắt phần %1$lld/%2$lld"
+          }
+        }
+      }
+    },
+    "đang tóm tắt…" : {
+
+    },
+    "Đánh dấu xong" : {
+
+    },
+    "Đặt lại prompt mặc định" : {
+
+    },
+    "Để sau" : {
+
+    },
+    "Delete the index of %@?" : {
+
+    },
+    "Đeo tai nghe để lắng tách giọng bạn rõ hơn." : {
+
+    },
+    "Đọc lại dự án" : {
+
+    },
+    "Đổi dự án" : {
+
+    },
+    "Đổi tốc độ phát" : {
+
+    },
+    "Đổi…" : {
+
+    },
+    "Dừng & lưu" : {
+
+    },
+    "dùng %lld tài liệu dự án" : {
+
+    },
+    "Dừng ghi âm" : {
+
+    },
+    "Dùng ngữ cảnh dự án khi tóm tắt" : {
+
+    },
+    "Dừng và lưu" : {
+
+    },
+    "Embedded" : {
+
+    },
+    "File" : {
+
+    },
+    "File .langignore trong thư mục dự án cũng được dùng. Thay đổi áp dụng khi đọc lại dự án." : {
+
+    },
+    "Filter" : {
+
+    },
+    "gần đây" : {
+
+    },
+    "Ghi / dừng ghi:" : {
+
+    },
+    "ghi âm" : {
+
+    },
+    "Ghi âm" : {
+
+    },
+    "Ghi âm cuộc họp, chép lời và tóm tắt, tất cả chạy trên máy bạn. Làm lần lượt các bước dưới đây." : {
+
+    },
+    "Ghi cuộc mới" : {
+
+    },
+    "Ghi thử" : {
+
+    },
+    "Glossary · %@" : {
+
+    },
+    "gõ “ghi” để bắt đầu ghi âm" : {
+
+    },
+    "Gõ câu hỏi trước." : {
+
+    },
+    "Gợi ý thuật ngữ" : {
+
+    },
+    "Gợi ý thuật ngữ từ dự án" : {
+
+    },
+    "Hiện ô nhỏ cạnh notch khi đang ghi" : {
+
+    },
+    "Hiện trong Finder" : {
+
+    },
+    "hoặc kéo thả vào đây" : {
+
+    },
+    "Hỏi" : {
+
+    },
+    "Hỏi " : {
+
+    },
+    "Hỏi một câu trước." : {
+
+    },
+    "Hỏi một câu…" : {
+
+    },
+    "Hỏi trước khi bỏ bản ghi dưới 15 giây" : {
+
+    },
+    "Hỏi về cuộc họp này" : {
+
+    },
+    "Hỏi về dự án…" : {
+
+    },
+    "If a shortcut does nothing, another app or macOS uses it (⌃⌥Space also switches input sources, e.g. Vietnamese Telex). Pick another one here." : {
+
+    },
+    "Indexed Files" : {
+
+    },
+    "Keyword search only (no vectors yet)" : {
+
+    },
+    "Khi Zoom, Teams, Webex hoặc trình duyệt (Google Meet) bắt đầu dùng micro, lắng hỏi \"Ghi lại không?\" (tối đa 10 phút một lần). Không bao giờ tự ghi nếu bạn không bấm." : {
+
+    },
+    "Không có audio để nghe." : {
+
+    },
+    "Không có kết quả" : {
+
+    },
+    "Không có việc nào đang chờ bạn. Việc có người phụ trách là “bạn”, “tôi” hoặc tên bạn trong Cài đặt sẽ hiện ở đây." : {
+
+    },
+    "Không đổi dự án được khi đang ghi âm." : {
+
+    },
+    "Không lưu được bản chép lời: %@" : {
+
+    },
+    "Không lưu được: %@" : {
+
+    },
+    "Không mở được .meetings: %@" : {
+
+    },
+    "Không rõ lỗi." : {
+
+    },
+    "Không tìm thấy trong dự án." : {
+
+    },
+    "không tóm tắt được" : {
+
+    },
+    "lắng" : {
+
+    },
+    "lắng chưa được dùng micro. Bật lắng trong Quyền riêng tư → Micrô." : {
+
+    },
+    "lắng chưa hỗ trợ tạm dừng. Bấm Dừng & lưu rồi ghi tiếp khi cần." : {
+
+    },
+    "lắng đã xong" : {
+
+    },
+    "lắng đang ghi âm, bấm để dừng" : {
+
+    },
+    "lắng đang xử lý" : {
+
+    },
+    "Last indexed" : {
+
+    },
+    "liên quan" : {
+
+    },
+    "Lưu trữ & nhật ký" : {
+
+    },
+    "macOS cần bạn cho phép trong Mục đăng nhập." : {
+
+    },
+    "Mẫu bỏ qua thêm (mỗi dòng một mẫu, giống .gitignore)" : {
+
+    },
+    "mic.m4a và system.m4a chỉ bị xoá sau khi transcript.md được lưu thành công." : {
+
+    },
+    "Mở bản tóm tắt gần nhất" : {
+
+    },
+    "Mở Cài đặt hệ thống" : {
+
+    },
+    "Mở cuộc họp" : {
+
+    },
+    "Mở file âm thanh…" : {
+
+    },
+    "Mô hình" : {
+
+    },
+    "Mô hình được tải về lần đầu dùng, vào Application Support/Lang/Models." : {
+
+    },
+    "Mô hình nhúng (embedding)" : {
+
+    },
+    "Mô hình tóm tắt" : {
+
+    },
+    "Mở Hỏi lắng:" : {
+
+    },
+    "Mở lắng" : {
+
+    },
+    "Mở lắng " : {
+
+    },
+    "Mở lắng khi đăng nhập" : {
+
+    },
+    "Mở Mục đăng nhập" : {
+
+    },
+    "Mở Ollama" : {
+
+    },
+    "Mở ollama.com" : {
+
+    },
+    "Mở thư mục ghi âm" : {
+
+    },
+    "Mở thư mục mô hình trong Finder" : {
+
+    },
+    "Mở thư mục nhật ký" : {
+
+    },
+    "Mở thư mục prompt" : {
+
+    },
+    "Move %lld audio files (%@) to the Trash?" : {
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Move %1$lld audio files (%2$@) to the Trash?"
+          }
+        }
+      }
+    },
+    "Nghe đoạn %@ nói" : {
+
+    },
+    "Nghe đoạn này" : {
+
+    },
+    "Nghe lại" : {
+
+    },
+    "Nghe từ %@" : {
+
+    },
+    "Nghe từ đoạn này" : {
+
+    },
+    "Ngôn ngữ tóm tắt" : {
+
+    },
+    "người khác" : {
+
+    },
+    "người khác %lld%%" : {
+
+    },
+    "Nguồn · bấm để mở, ⌥-bấm để hiện trong Finder" : {
+
+    },
+    "Nhắc khi phát hiện cuộc họp" : {
+
+    },
+    "Nhấn ↵ để bắt đầu ghi âm" : {
+
+    },
+    "Nhấp đúp để đổi tên" : {
+
+    },
+    "No transcribed meeting older than 30 days has audio." : {
+
+    },
+    "Ollama chưa chạy nên chưa tóm tắt được." : {
+
+    },
+    "Ollama chưa chạy: chỉ tìm được theo từ khóa." : {
+
+    },
+    "Ollama chưa chạy: dự án chỉ tìm được theo từ khóa." : {
+
+    },
+    "Ollama models" : {
+
+    },
+    "Phát" : {
+
+    },
+    "Phím tắt" : {
+
+    },
+    "Project indexes" : {
+
+    },
+    "Quay lại danh sách" : {
+
+    },
+    "quyết định" : {
+
+    },
+    "qwen3:8b: chất lượng tốt nhất (~5 GB). qwen3:4b: nhanh hơn, chất lượng thấp hơn (~2.5 GB)." : {
+
+    },
+    "Reindex" : {
+
+    },
+    "Save to glossary.txt" : {
+
+    },
+    "Search" : {
+
+    },
+    "Select All" : {
+
+    },
+    "Select None" : {
+
+    },
+    "Sửa lời này" : {
+
+    },
+    "Tải" : {
+
+    },
+    "tài liệu đã đọc" : {
+
+    },
+    "Tải model" : {
+
+    },
+    "Tạm dừng" : {
+
+    },
+    "Tên của tôi" : {
+
+    },
+    "Tên cuộc họp" : {
+
+    },
+    "Test search (e.g. a feature name or a person)" : {
+
+    },
+    "thay đổi so với trước" : {
+
+    },
+    "Thay nhãn \"Tôi\" trong nội dung gửi cho mô hình, để bản tóm tắt biết bạn là ai." : {
+
+    },
+    "Thêm" : {
+
+    },
+    "Thêm tài liệu liên quan và cuộc họp trước làm ngữ cảnh, cùng các mục \"Liên quan tới tài liệu\" và \"Thay đổi so với trước\"." : {
+
+    },
+    "Thiết lập lắng" : {
+
+    },
+    "Thoát lắng" : {
+
+    },
+    "thời gian nói" : {
+
+    },
+    "Thời gian nói: bạn %lld phần trăm, người khác %lld phần trăm" : {
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Thời gian nói: bạn %1$lld phần trăm, người khác %2$lld phần trăm"
+          }
+        }
+      }
+    },
+    "Thử lại" : {
+
+    },
+    "thuật ngữ" : {
+
+    },
+    "Ticked terms go to .meetings/glossary.txt. Whisper uses them as a spelling hint for names and jargon." : {
+
+    },
+    "Tiếng Anh" : {
+
+    },
+    "Tiếng Việt" : {
+
+    },
+    "Tìm cuộc họp hoặc mục…" : {
+
+    },
+    "Tìm mọi thứ, phím tắt ⌘K" : {
+
+    },
+    "Tìm mọi thứ…" : {
+
+    },
+    "Tìm trong bản ghi" : {
+
+    },
+    "Tôi" : {
+
+    },
+    "tóm tắt" : {
+
+    },
+    "Tóm tắt" : {
+
+    },
+    "Tóm tắt lại" : {
+
+    },
+    "Tóm tắt lại cuộc họp gần nhất" : {
+
+    },
+    "Tóm tắt ngay" : {
+
+    },
+    "Tự chép lời sau khi ghi" : {
+
+    },
+    "Tự tóm tắt sau khi chép lời" : {
+
+    },
+    "Type" : {
+
+    },
+    "Vectors" : {
+
+    },
+    "việc cần làm" : {
+
+    },
+    "Việc của tôi" : {
+
+    },
+    "Waiting for transcription/summary to finish…" : {
+
+    },
+    "Whisper models" : {
+
+    },
+    "Xem" : {
+
+    },
+    "Xem file đã đọc" : {
+
+    },
+    "Xoá audio cũ hơn 30 ngày…" : {
+
+    },
+    "Xoá audio sau khi chép lời" : {
+
+    },
+    "Xóa bản ghi thử" : {
+
+    },
+    "Xoá chỉ mục" : {
+
+    },
+    "Xoá chỉ mục dự án…" : {
+
+    },
+    "Xoá cuộc họp" : {
+
+    },
+    "Xoá cuộc họp này?" : {
+
+    },
+    "Xoá cuộc họp…" : {
+
+    },
+    "xong" : {
+
+    },
+    "Xong" : {
+
+    },
+    "Xuất Markdown" : {
+
+    }
+  },
+  "version" : "1.0"
+}

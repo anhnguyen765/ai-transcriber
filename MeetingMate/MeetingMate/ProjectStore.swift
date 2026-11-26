@@ -4,11 +4,15 @@ import AppKit
 @MainActor
 final class ProjectStore: ObservableObject {
     @Published private(set) var folderURL: URL?
+    /// Recently used project folders, newest first (for the project switcher).
+    @Published private(set) var recentFolders: [URL] = []
 
     /// Called when you pick a different project folder (used to start indexing it).
     var onFolderChanged: ((URL) -> Void)?
 
     private let bookmarkKey = "projectFolderBookmark"
+    private let recentKey = "recentProjectBookmarks"
+    private static let maxRecent = 5
 
     var projectName: String { folderURL?.lastPathComponent ?? "No project folder" }
 
@@ -19,6 +23,7 @@ final class ProjectStore: ObservableObject {
 
     init() {
         restore()
+        restoreRecents()
     }
 
     /// Shows the standard macOS "choose folder" dialog.
@@ -40,11 +45,45 @@ final class ProjectStore: ObservableObject {
         onFolderChanged?(url)
     }
 
+    /// Switches to a recently used project folder.
+    func select(_ url: URL) {
+        guard url.standardizedFileURL != folderURL?.standardizedFileURL else { return }
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            recentFolders.removeAll { $0 == url }
+            saveRecents()
+            return
+        }
+        save(url)
+        onFolderChanged?(url)
+    }
+
     private func save(_ url: URL) {
         folderURL = url
         // A bookmark keeps working even if the folder is renamed or moved.
         if let data = try? url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) {
             UserDefaults.standard.set(data, forKey: bookmarkKey)
+        }
+        recentFolders.removeAll { $0.standardizedFileURL == url.standardizedFileURL }
+        recentFolders.insert(url, at: 0)
+        recentFolders = Array(recentFolders.prefix(Self.maxRecent))
+        saveRecents()
+    }
+
+    private func saveRecents() {
+        let data = recentFolders.compactMap {
+            try? $0.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil)
+        }
+        UserDefaults.standard.set(data, forKey: recentKey)
+    }
+
+    private func restoreRecents() {
+        let data = UserDefaults.standard.array(forKey: recentKey) as? [Data] ?? []
+        recentFolders = data.compactMap { item in
+            var isStale = false
+            return try? URL(resolvingBookmarkData: item, options: [], relativeTo: nil, bookmarkDataIsStale: &isStale)
+        }
+        if let folderURL, !recentFolders.contains(where: { $0.standardizedFileURL == folderURL.standardizedFileURL }) {
+            recentFolders.insert(folderURL, at: 0)
         }
     }
 

@@ -47,7 +47,8 @@ final class TranscriptionService: ObservableObject {
 
     private var queue: [URL] = []       // meeting folders waiting to be transcribed
     private var runner: Task<Void, Never>?
-    private var currentFolder: URL?
+    /// The meeting being transcribed right now (shown in the popover's pipeline card).
+    @Published private(set) var currentFolder: URL?
 
     // MARK: - Public actions
 
@@ -74,7 +75,16 @@ final class TranscriptionService: ObservableObject {
         panel.message = "Choose an audio or video file to transcribe"
         NSApp.activate()
         guard panel.runModal() == .OK, let source = panel.url else { return }
+        transcribeFile(source, projectFolder: projectFolder)
+    }
 
+    /// Copies an audio/video file's audio into a new meeting folder and transcribes it
+    /// (used by "Mở file âm thanh…" and drag & drop onto the popover).
+    func transcribeFile(_ source: URL, projectFolder: URL?) {
+        guard let projectFolder else {
+            errorMessage = "Choose a project folder first."
+            return
+        }
         errorMessage = nil
         if phase == .idle { phase = .preparing }
         Task {
