@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Runs lang-omniwm-status every 3 s. Replace __HOME__ with your home folder on install. -->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.lang.omniwm-status</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>__HOME__/.local/bin/lang-omniwm-status</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+    <key>StartInterval</key>
+    <integer>3</integer>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardErrorPath</key>
+    <string>/tmp/lang-omniwm-status.err</string>
+</dict>
+</plist>

@@ -76,6 +76,10 @@ Và tất cả đều miễn phí, chạy offline, dữ liệu nằm trong chín
 
 > Mẹo: đeo tai nghe khi họp online để lắng tách giọng bạn rõ hơn.
 
+> Đã cấp quyền mà bấm ghi âm vẫn không chạy? Nếu app được ký ad-hoc (`CODE_SIGN_IDENTITY=-`), mỗi lần build lại macOS coi là app mới nên quyền cũ không còn tác dụng. Hãy ký bằng chứng chỉ Apple Development, rồi chạy `tccutil reset Microphone com.n3rd.MeetingMate` và `tccutil reset ScreenCapture com.n3rd.MeetingMate` và cấp quyền lại một lần.
+
+Dùng [OmniWM](https://github.com/OmniNull/OmniWM)? Có sẵn widget hiện trạng thái ghi âm trên thanh bar: [extras/omniwm/meeting-recorder](extras/omniwm/meeting-recorder).
+
 ### Phím tắt
 
 | Việc | Phím |
