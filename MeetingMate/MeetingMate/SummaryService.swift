@@ -20,6 +20,9 @@ struct SummaryPipeline {
     let language: SummaryWriter.Language
     /// Finds project documents/meetings for search queries. nil = summarize without project context.
     var retrieveContext: (([String]) async -> [RetrievedChunk])? = nil
+    /// Which meeting is being summarized. Every prompt names it, so the model never mixes it up
+    /// with earlier meetings or the project overview. nil = unnamed ("cuộc họp này").
+    var meeting: MeetingIdentity? = nil
 
     /// Project context gets at most this many (estimated) tokens in the final prompt.
     static let contextTokenBudget = 2_500
@@ -46,7 +49,7 @@ struct SummaryPipeline {
             } else {
                 progress(1, 1)
             }
-            return try await finalSummary(input: "Bản chép lời:\n\(full)", inputKind: "bản chép lời",
+            return try await finalSummary(input: fenced("Bản chép lời", full), inputKind: "bản chép lời",
                                           duration: duration, sources: sources)
         }
 
@@ -73,7 +76,7 @@ struct SummaryPipeline {
 
         // Pass 2: merge the notes into the final summary.
         progress(total, total)
-        return try await finalSummary(input: "Ghi chú từng phần:\n\(Self.render(notes))",
+        return try await finalSummary(input: fenced("Ghi chú từng phần", Self.render(notes)),
                                       inputKind: "ghi chú từng phần", duration: duration, sources: sources)
     }
 
@@ -98,17 +101,72 @@ struct SummaryPipeline {
                               sources: [Source]) async throws -> MeetingSummary {
         let minutes = max(1, Int((duration / 60).rounded()))
         let schema = sources.isEmpty ? SummarySchema.summary : SummarySchema.summaryWithContext
-        var template = prompts.final
-        if !sources.isEmpty, !template.contains("{{project_context}}") {
-            template += "\n\n{{project_context}}" // prompt files from Phase 3 don't have the placeholder yet
-        }
+        let template = Self.upgradedTemplate(prompts.final)
         let prompt = prompts.fill(template, [
             "input_kind": inputKind, "duration": "\(minutes) phút",
             "schema": SummarySchema.text(schema), "input": input,
-            "project_context": Self.contextBlock(sources),
+            "meeting_header": Self.meetingHeader(meeting, minutes: minutes),
+            "project_context": Self.contextBlock(sources, meeting: meeting),
         ])
-        let summary = try await requestJSON(MeetingSummary.self, prompt: prompt, schema: schema)
-        return Self.validate(summary, sources: sources)
+        var summary = Self.validate(try await requestJSON(MeetingSummary.self, prompt: prompt, schema: schema),
+                                    sources: sources)
+        summary.meetingID = meeting?.id
+        summary.projectName = meeting?.projectName
+        return summary
+    }
+
+    /// Prompt files written before these placeholders existed (the user's own copies in
+    /// Application Support) still get them — and in the right order: who this meeting is first,
+    /// project reference next, and this meeting's own transcript LAST, closest to the answer.
+    static func upgradedTemplate(_ template: String) -> String {
+        var t = template
+        if !t.contains("{{meeting_header}}") { t = "{{meeting_header}}\n\n" + t }
+        if !t.contains("{{project_context}}") {
+            t = t.contains("{{input}}")
+                ? t.replacingOccurrences(of: "{{input}}", with: "{{project_context}}\n\n{{input}}")
+                : t + "\n\n{{project_context}}"
+        }
+        return t
+    }
+
+    /// The meeting's own text between markers that carry its ID.
+    private func fenced(_ kind: String, _ text: String) -> String {
+        let id = meeting?.id ?? "này"
+        return "<<< BẮT ĐẦU CUỘC HỌP \(id) — \(kind) >>>\n\(text)\n<<< KẾT THÚC CUỘC HỌP \(id) >>>"
+    }
+
+    // MARK: Meeting identity
+
+    /// "Who" the summary is about: one meeting, with an ID, a time and a project.
+    struct MeetingIdentity: Equatable {
+        /// The meeting's folder name, e.g. "2026-11-28_10-05-00".
+        var id: String
+        var start: Date
+        /// The project folder's name ("" = no project).
+        var projectName: String
+        /// "about" from the project's overview.json, if it was built. Shown only next to project context.
+        var projectAbout: String?
+    }
+
+    static func meetingHeader(_ meeting: MeetingIdentity?, minutes: Int) -> String {
+        guard let meeting else {
+            return """
+            CUỘC HỌP CẦN TÓM TẮT: chỉ một cuộc họp, nằm giữa hai dòng "BẮT ĐẦU CUỘC HỌP" và "KẾT THÚC CUỘC HỌP". \
+            Mọi mục trong biên bản phải đến từ phần đó.
+            """
+        }
+        var lines = [
+            "CUỘC HỌP CẦN TÓM TẮT",
+            "- Mã cuộc họp: \(meeting.id)",
+            "- Thời gian: \(headerDateFormatter.string(from: meeting.start)), dài \(minutes) phút",
+        ]
+        if !meeting.projectName.isEmpty { lines.append("- Thuộc dự án: \(meeting.projectName)") }
+        lines.append("""
+        Biên bản chỉ nói về cuộc họp \(meeting.id). title, overview, keyPoints, decisions, actionItems và \
+        openQuestions đều phải đến từ phần giữa "BẮT ĐẦU CUỘC HỌP \(meeting.id)" và "KẾT THÚC CUỘC HỌP \(meeting.id)". \
+        overview là tóm tắt cuộc họp này, KHÔNG phải tổng quan dự án.
+        """)
+        return lines.joined(separator: "\n")
     }
 
     // MARK: Project context
@@ -132,7 +190,7 @@ struct SummaryPipeline {
 
         var sources: [Source] = []
         var used = 0
-        for chunk in chunks {
+        for chunk in chunks where Self.usableAsContext(chunk.path, meetingID: meeting?.id) {
             let text = String(chunk.text.prefix(Int(Double(Self.maxTokensPerSource) * 2.5)))
             let trimmed = RetrievedChunk(id: chunk.id, path: chunk.path, sourceType: chunk.sourceType,
                                          location: chunk.location, text: text, meetingDate: chunk.meetingDate,
@@ -146,26 +204,57 @@ struct SummaryPipeline {
         return sources
     }
 
-    /// "[S1] docs/plan.md — Timeline" + the chunk text.
+    /// Earlier meetings are used only through their summary.md: a raw transcript of another meeting
+    /// looks exactly like this one's, and small models then summarize the wrong meeting.
+    /// The meeting being summarized is never its own context.
+    static func usableAsContext(_ path: String, meetingID: String?) -> Bool {
+        guard path.hasPrefix(".meetings/") else { return true }
+        if let meetingID, path.hasPrefix(".meetings/\(meetingID)/") { return false }
+        return !path.hasSuffix("/\(TranscriptWriter.markdownFileName)")
+    }
+
+    /// The other meeting's ID for a path like ".meetings/2026-11-01_09-00-00/summary.md".
+    static func meetingID(inPath path: String) -> String? {
+        let parts = path.split(separator: "/")
+        return parts.count == 3 && parts[0] == ".meetings" ? String(parts[1]) : nil
+    }
+
+    /// "[S1] tài liệu dự án · docs/plan.md — Timeline" or
+    /// "[S2] CUỘC HỌP KHÁC (mã 2026-11-01_09-00-00, ngày 2026-11-01) · .meetings/…/summary.md", then the text.
     static func describe(_ source: Source) -> String {
         let c = source.chunk
-        var header = "[\(source.label)] \(c.path)"
-        if let date = c.meetingDate {
-            header += " — cuộc họp ngày \(contextDateFormatter.string(from: date))"
+        var header = "[\(source.label)] "
+        if let other = meetingID(inPath: c.path) {
+            let day = c.meetingDate.map { ", ngày \(contextDateFormatter.string(from: $0))" } ?? ""
+            header += "CUỘC HỌP KHÁC (mã \(other)\(day)) · \(c.path)"
+        } else {
+            header += "tài liệu dự án · \(c.path)"
         }
         if !c.location.isEmpty { header += " — \(c.location)" }
         return header + "\n" + c.text
     }
 
-    static func contextBlock(_ sources: [Source]) -> String {
+    static func contextBlock(_ sources: [Source], meeting: MeetingIdentity? = nil) -> String {
         guard !sources.isEmpty else { return "" }
+        let id = meeting?.id ?? "này"
+        var project = ""
+        if let meeting, !meeting.projectName.isEmpty {
+            project = "Dự án \"\(meeting.projectName)\""
+            if let about = meeting.projectAbout?.trimmingCharacters(in: .whitespacesAndNewlines), !about.isEmpty {
+                project += " — tổng quan: \(about)"
+            }
+            project += "\n\n"
+        }
         return """
-        PROJECT CONTEXT — tài liệu và cuộc họp trước trong dự án. Đây CHỈ là thông tin nền, KHÔNG phải nội dung cuộc họp này.
+        <<< THAM KHẢO DỰ ÁN — KHÔNG phải nội dung cuộc họp \(id) >>>
+        PROJECT CONTEXT — tài liệu và các cuộc họp KHÁC trong dự án. Đây CHỈ là thông tin nền.
 
-        \(sources.map(describe).joined(separator: "\n\n"))
+        \(project)\(sources.map(describe).joined(separator: "\n\n"))
+        <<< HẾT THAM KHẢO DỰ ÁN >>>
 
         Quy tắc khi dùng PROJECT CONTEXT:
-        - Bản chép lời (hoặc ghi chú) của cuộc họp là nguồn DUY NHẤT cho những gì được nói trong cuộc họp này.
+        - Bản chép lời (hoặc ghi chú) của cuộc họp \(id) là nguồn DUY NHẤT cho những gì được nói trong cuộc họp này.
+        - Việc cần làm, quyết định và câu hỏi của "CUỘC HỌP KHÁC" hay tổng quan dự án KHÔNG thuộc cuộc họp \(id); không chép sang.
         - Chỉ dùng context để: làm rõ tên người và thuật ngữ, liệt kê tài liệu liên quan (relatedDocs), và phát hiện quyết định khác với trước (changesFromBefore).
         - Không bao giờ viết một điều chỉ có trong context như thể nó đã được nói trong cuộc họp.
         - relatedDocs: chỉ những nguồn thật sự liên quan tới nội dung cuộc họp. source là nhãn như "S1", reason ngắn gọn.
@@ -209,6 +298,21 @@ struct SummaryPipeline {
         }
         return s
     }
+
+    /// Project context is used only when the meeting really relates to the project: if even the
+    /// closest match is weak (a meeting recorded into the wrong project, or about something new),
+    /// the summary is written from the transcript alone. Same bar as the Ask window's "not found".
+    static func relevantContext(_ outcome: SearchOutcome) -> [RetrievedChunk] {
+        if let best = outcome.bestSimilarity, best < AnswerService.minSimilarity { return [] }
+        return outcome.chunks
+    }
+
+    private static let headerDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd HH:mm"
+        return f
+    }()
 
     private static let contextDateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -488,12 +592,18 @@ final class SummaryService: ObservableObject {
         let language = AppSettings.summaryLanguage
         var pipeline = SummaryPipeline(client: client, model: model, prompts: PromptStore.load(),
                                        myName: AppSettings.myName, language: language)
+        let projectFolder = URL(fileURLWithPath: meta.projectPath)
+        pipeline.meeting = SummaryPipeline.MeetingIdentity(
+            id: folder.lastPathComponent, start: meta.startTime,
+            projectName: meta.projectPath.isEmpty ? "" : projectFolder.lastPathComponent,
+            projectAbout: meta.projectPath.isEmpty ? nil : ProjectOverviewBuilder.load(projectFolder: projectFolder)?.about)
         // Phase 4: search the project's index for related docs and earlier meetings.
         if AppSettings.useProjectContext, let retriever = retrieverProvider(meta.projectPath) {
             let thisMeeting = ".meetings/\(folder.lastPathComponent)/" // never cite the meeting itself
             pipeline.retrieveContext = { queries in
-                let found = (try? await retriever.search(queries: queries, limit: 8,
-                                                         excludingPathPrefix: thisMeeting)) ?? []
+                let outcome = try? await retriever.searchDetailed(queries: queries, limit: 8,
+                                                                  excludingPathPrefix: thisMeeting)
+                let found = outcome.map(SummaryPipeline.relevantContext) ?? []
                 let documents = Set(found.map(\.path)).count
                 await MainActor.run { self.contextDocumentCount = documents }
                 return found
@@ -504,7 +614,7 @@ final class SummaryService: ObservableObject {
             let summary = try await pipeline.summarize(lines, duration: meta.durationSeconds) { part, total in
                 Task { @MainActor in self.phase = .summarizing(part: part, total: total) }
             }
-            let projectName = URL(fileURLWithPath: meta.projectPath).lastPathComponent
+            let projectName = projectFolder.lastPathComponent
             let url = try SummaryWriter.write(summary, meetingStart: meta.startTime, duration: meta.durationSeconds,
                                               projectName: projectName, language: language, to: folder)
             meta.status = .summarized

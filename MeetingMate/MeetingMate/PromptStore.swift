@@ -86,10 +86,12 @@ enum PromptStore {
         {{transcript}}
         """,
         final: """
-        Dưới đây là {{input_kind}} của một cuộc họp dài {{duration}}.
+        {{meeting_header}}
+
+        Dưới đây là {{input_kind}} của cuộc họp đó, dài {{duration}}.
         Hãy viết biên bản cuối cùng:
         - title: tiêu đề ngắn (tối đa 10 từ)
-        - overview: tóm tắt 3–5 câu về nội dung chính
+        - overview: tóm tắt 3–5 câu về nội dung chính của CHÍNH cuộc họp này
         - keyPoints: các điểm chính
         - decisions: các quyết định đã được chốt
         - actionItems: việc cần làm (task, owner, deadline)
