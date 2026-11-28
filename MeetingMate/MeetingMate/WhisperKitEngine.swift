@@ -2,10 +2,13 @@ import AVFoundation
 import Foundation
 import WhisperKit
 
-/// The Whisper models you can pick in Settings (exact folder names in argmaxinc/whisperkit-coreml).
+/// The Whisper models you can pick in Settings (the folder name of each model's Core ML files).
 enum WhisperModel: String, CaseIterable, Identifiable {
     /// OpenAI's large-v3 turbo (released 2024-09-30), the variant Argmax recommends on Mac.
     case largeV3Turbo = "openai_whisper-large-v3-v20240930_turbo"
+    /// EraX-WoW-Turbo V1.1: large-v3 turbo fine-tuned for Vietnamese (MIT). Not on Argmax's hub:
+    /// convert and install it with scripts/asr-eval/convert_model.sh.
+    case vietnameseTurbo = "erax-ai_EraX-WoW-Turbo-V1.1"
     case small = "openai_whisper-small"
 
     var id: String { rawValue }
@@ -13,7 +16,22 @@ enum WhisperModel: String, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .largeV3Turbo: "large-v3 turbo (best, ~1.6 GB)"
+        case .vietnameseTurbo: "large-v3 turbo, tuned for Vietnamese (EraX, ~1.6 GB)"
         case .small: "small (faster, for testing, ~0.5 GB)"
+        }
+    }
+
+    /// WhisperKit treats a window as failed when the first token is less likely than this. Fine-tunes are
+    /// less sure of their first (timestamp) token, so with the default -1.5 EraX returned no text at all.
+    var firstTokenLogProbThreshold: Float? {
+        self == .vietnameseTurbo ? nil : -1.5
+    }
+
+    /// Hugging Face repo WhisperKit downloads the model from, or nil for a model installed by hand.
+    var repo: String? {
+        switch self {
+        case .vietnameseTurbo: nil
+        case .largeV3Turbo, .small: "argmaxinc/whisperkit-coreml"
         }
     }
 }
@@ -21,6 +39,7 @@ enum WhisperModel: String, CaseIterable, Identifiable {
 /// Speech-to-text with WhisperKit, fully on-device.
 final class WhisperKitEngine: TranscriptionEngine {
     let modelName: String
+    private let model: WhisperModel
     private var whisperKit: WhisperKit?
 
     /// ~/Library/Application Support/Lang/Models
@@ -29,6 +48,7 @@ final class WhisperKitEngine: TranscriptionEngine {
     }
 
     init(model: WhisperModel) {
+        self.model = model
         modelName = model.rawValue
     }
 
@@ -50,8 +70,10 @@ final class WhisperKitEngine: TranscriptionEngine {
     }
 
     /// Where WhisperKit keeps a model, and whether a previous download finished.
+    /// Hand-installed models live in models/local/<name>.
     static func localFolder(_ modelName: String) -> URL {
-        modelsFolder.appending(path: "models/argmaxinc/whisperkit-coreml/\(modelName)", directoryHint: .isDirectory)
+        let repo = WhisperModel(rawValue: modelName).map { $0.repo ?? "local" } ?? "argmaxinc/whisperkit-coreml"
+        return modelsFolder.appending(path: "models/\(repo)/\(modelName)", directoryHint: .isDirectory)
     }
 
     static func isDownloaded(_ modelName: String) -> Bool {
@@ -64,6 +86,10 @@ final class WhisperKitEngine: TranscriptionEngine {
         if isDownloaded(modelName) {
             progress(1)
             return localFolder(modelName) // already downloaded: works offline
+        }
+        if let model = WhisperModel(rawValue: modelName), model.repo == nil {
+            throw RecorderError("\(model.displayName) can't be downloaded automatically. "
+                + "Install it with MeetingMate/scripts/asr-eval/convert_model.sh, or pick another model in Settings.")
         }
         let folder = try await WhisperKit.download(variant: modelName, downloadBase: modelsFolder) { p in
             progress(p.fractionCompleted)
@@ -98,6 +124,7 @@ final class WhisperKitEngine: TranscriptionEngine {
             concurrentWorkerCount: 4,
             chunkingStrategy: .vad         // split long audio at silences (voice activity detection)
         )
+        decode.firstTokenLogProbThreshold = model.firstTokenLogProbThreshold
         decode.promptTokens = promptTokens(for: options.vocabularyPrompt, kit: kit)
 
         let reader = try await AudioPieceReader(url: fileURL)
