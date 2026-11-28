@@ -1,0 +1,42 @@
+#!/bin/zsh
+# Pushes lắng's recording state to the OmniWM bar (widget: meeting-recorder).
+#   omniwmctl shell set lang.status "<off|idle|recording>|<since epoch s>|<meeting folder or ->"
+# Source of truth: lắng's own log (the app has no IPC):
+#   ~/Library/Application Support/Lang/Logs/lang.log
+# Run by launchd every few seconds (see com.lang.omniwm-status.plist).
+# Pass --print to only print the value (for testing).
+
+LOG="$HOME/Library/Application Support/Lang/Logs/lang.log"
+CACHE="${TMPDIR:-/tmp}/lang-omniwm-status.last"
+CTL=$(command -v omniwmctl || echo /opt/homebrew/bin/omniwmctl)
+
+state=off since=0 meeting=-
+if pgrep -f '/lang\.app/Contents/MacOS/lang$' >/dev/null; then
+  state=idle
+  # Last event that changes the recording state. A crash leaves "Recording started"
+  # as the last line, but then pgrep fails above, so we report "off".
+  last=$(tail -n 400 "$LOG" 2>/dev/null \
+    | grep -E '\[INFO\] (Recording started: |Recording stopped: |.*ng started \(|Quitting \()' \
+    | tail -n 1)
+  if [[ $last == *"Recording started: "* ]]; then
+    state=recording
+    meeting=${last##*Recording started: }
+    ts=${last%%.*}                                   # 2026-11-28T02:57:56 (UTC)
+    since=$(date -j -u -f '%Y-%m-%dT%H:%M:%S' "$ts" +%s 2>/dev/null || echo 0)
+  fi
+fi
+
+value="$state|$since|$meeting"
+if [[ ${1:-} == --print ]]; then
+  print -r -- "$value"
+  exit 0
+fi
+
+# Push only when the value changed, or once a minute (vars live in memory,
+# so this restores them after OmniWM restarts).
+now=$(date +%s)
+if [[ -f $CACHE ]] && [[ $(<"$CACHE") == "$value" ]] \
+   && (( now - $(stat -f %m "$CACHE") < 60 )); then
+  exit 0
+fi
+"$CTL" shell set lang.status "$value" >/dev/null && print -r -- "$value" >| "$CACHE"

@@ -1,0 +1,16 @@
+# Options shown in Settings > Styles & Widgets for this widget.
+
+[options.showWhenIdle]
+type = "boolean"
+title = "Show icon when not recording"
+default = false
+
+[options.showTimer]
+type = "boolean"
+title = "Show recording timer"
+default = true
+
+[options.micCheck]
+type = "boolean"
+title = "Warn if recording but microphone is not in use"
+default = true
