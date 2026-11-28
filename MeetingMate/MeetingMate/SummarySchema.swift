@@ -13,10 +13,17 @@ struct MeetingSummary: Codable, Equatable {
     var changesFromBefore: [ChangeFromBefore]
     /// The [S#] sources that were shown to the model (filled in by the app, not by the model).
     var sources: [ContextSource]
+    /// Which meeting this summary is about (its folder name, e.g. "2026-11-28_10-05-00") and its project.
+    /// Filled in by the app, so a summary always points back to its own meeting and project folder.
+    var meetingID: String?
+    var projectName: String?
 
     init(title: String, overview: String, keyPoints: [SummaryItem] = [], decisions: [SummaryItem] = [],
          actionItems: [ActionItem] = [], openQuestions: [SummaryItem] = [],
-         relatedDocs: [RelatedDoc] = [], changesFromBefore: [ChangeFromBefore] = [], sources: [ContextSource] = []) {
+         relatedDocs: [RelatedDoc] = [], changesFromBefore: [ChangeFromBefore] = [], sources: [ContextSource] = [],
+         meetingID: String? = nil, projectName: String? = nil) {
+        self.meetingID = meetingID
+        self.projectName = projectName
         self.title = title
         self.overview = overview
         self.keyPoints = keyPoints
@@ -40,6 +47,8 @@ struct MeetingSummary: Codable, Equatable {
         relatedDocs = try c.decodeIfPresent([RelatedDoc].self, forKey: .relatedDocs) ?? []
         changesFromBefore = try c.decodeIfPresent([ChangeFromBefore].self, forKey: .changesFromBefore) ?? []
         sources = try c.decodeIfPresent([ContextSource].self, forKey: .sources) ?? []
+        meetingID = try c.decodeIfPresent(String.self, forKey: .meetingID)
+        projectName = try c.decodeIfPresent(String.self, forKey: .projectName)
     }
 }
 

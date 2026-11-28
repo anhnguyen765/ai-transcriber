@@ -45,7 +45,9 @@ enum SummaryWriter {
         }
 
         var md = "# \(s.title)\n\n"
-        md += "\(dateFormatter.string(from: meetingStart)) · \(minutes) \(vi ? "phút" : "min") · \(projectName)\n\n"
+        md += "\(dateFormatter.string(from: meetingStart)) · \(minutes) \(vi ? "phút" : "min") · \(projectName)"
+        if let id = s.meetingID { md += " · \(vi ? "mã cuộc họp" : "meeting") `\(id)`" }
+        md += "\n\n"
         md += "## \(vi ? "Tóm tắt" : "Summary")\n\n\(s.overview)\n\n"
         md += section(vi ? "Điểm chính" : "Key points", s.keyPoints)
         md += section(vi ? "Quyết định" : "Decisions", s.decisions)

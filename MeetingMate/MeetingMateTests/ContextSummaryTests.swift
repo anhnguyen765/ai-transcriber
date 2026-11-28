@@ -87,8 +87,8 @@ struct ContextSummaryTests {
         #expect(search.queries.contains("Thanh toán QR"))
         let final = try #require(llm.prompts.last)
         #expect(final.contains("PROJECT CONTEXT"))
-        #expect(final.contains("[S1] docs/payments.md — Thanh toán > QR"))
-        #expect(final.contains("[S2] .meetings/2026-11-01_09-00-00/summary.md — cuộc họp ngày"))
+        #expect(final.contains("[S1] tài liệu dự án · docs/payments.md — Thanh toán > QR"))
+        #expect(final.contains("[S2] CUỘC HỌP KHÁC (mã 2026-11-01_09-00-00, ngày"))
         #expect(final.contains("nguồn DUY NHẤT"))
         #expect(llm.contextLengths.allSatisfy { $0 == 12_288 })
     }
@@ -134,7 +134,64 @@ struct ContextSummaryTests {
         p.retrieveContext = { [search] in await search.search($0) }
         let llm = p.client as! ScriptedLLM
         _ = try await p.summarize(lines, duration: 60) { _, _ in }
-        #expect(llm.prompts.last?.contains("[S1] docs/payments.md") == true)
+        #expect(llm.prompts.last?.contains("[S1] tài liệu dự án · docs/payments.md") == true)
+    }
+
+    // MARK: Meeting identity
+
+    private let identity = SummaryPipeline.MeetingIdentity(
+        id: "2026-11-28_10-05-00", start: Date(timeIntervalSince1970: 1_795_860_300),
+        projectName: "Payments", projectAbout: "Ví điện tử cho khách hàng cá nhân.")
+
+    @Test func finalPromptNamesTheMeetingAndPutsItsTranscriptLast() async throws {
+        let llm = ScriptedLLM([notesReply, contextSummaryReply])
+        var p = pipeline(llm)
+        p.meeting = identity
+        let summary = try await p.summarize(lines, duration: 120) { _, _ in }
+
+        let final = try #require(llm.prompts.last)
+        #expect(final.contains("Mã cuộc họp: 2026-11-28_10-05-00"))
+        #expect(final.contains("Thuộc dự án: Payments"))
+        #expect(final.contains("Dự án \"Payments\" — tổng quan: Ví điện tử"))
+        // Order: who → project reference → this meeting's own transcript.
+        let header = try #require(final.range(of: "CUỘC HỌP CẦN TÓM TẮT"))
+        let context = try #require(final.range(of: "<<< THAM KHẢO DỰ ÁN"))
+        let start = try #require(final.range(of: "<<< BẮT ĐẦU CUỘC HỌP 2026-11-28_10-05-00"))
+        let end = try #require(final.range(of: "<<< KẾT THÚC CUỘC HỌP 2026-11-28_10-05-00 >>>"))
+        #expect(header.lowerBound < context.lowerBound && context.lowerBound < start.lowerBound)
+        #expect(start.lowerBound < end.lowerBound)
+        #expect(summary.meetingID == "2026-11-28_10-05-00" && summary.projectName == "Payments")
+    }
+
+    @Test func userPromptFileFromPhase3GetsHeaderAndContextBeforeTheTranscript() {
+        let old = "Dưới đây là {{input_kind}}.\n\nJSON schema:\n{{schema}}\n\n{{input}}"
+        let t = SummaryPipeline.upgradedTemplate(old)
+        #expect(t.hasPrefix("{{meeting_header}}"))
+        #expect(t.hasSuffix("{{project_context}}\n\n{{input}}"))
+        #expect(SummaryPipeline.upgradedTemplate(PromptStore.defaults.final) == PromptStore.defaults.final)
+    }
+
+    @Test func otherMeetingsTranscriptsAndThisMeetingAreNeverContext() async throws {
+        let mixed = FakeSearch([
+            chunk(1, ".meetings/2026-11-01_09-00-00/transcript.md", "Người khác: nói chuyện khác"),
+            chunk(2, ".meetings/2026-11-28_10-05-00/summary.md", "chính nó"),
+            chunk(3, ".meetings/2026-11-01_09-00-00/summary.md", "Quyết định cũ"),
+            chunk(4, "docs/a.md", "Tài liệu"),
+        ])
+        var p = SummaryPipeline(client: ScriptedLLM([]), model: "m", prompts: PromptStore.defaults,
+                                myName: "", language: .vietnamese)
+        p.meeting = identity
+        p.retrieveContext = { await mixed.search($0) }
+        let sources = await p.findContext(for: [ChunkNotes(keyPoints: [SummaryItem(text: "x")])])
+        #expect(sources.map(\.chunk.path) == [".meetings/2026-11-01_09-00-00/summary.md", "docs/a.md"])
+    }
+
+    @Test func weakMatchesMeanNoProjectContext() {
+        let chunks = [chunk(1, "docs/a.md", "x")]
+        #expect(SummaryPipeline.relevantContext(SearchOutcome(chunks: chunks, bestSimilarity: 0.40, keywordHits: 3)).isEmpty)
+        #expect(SummaryPipeline.relevantContext(SearchOutcome(chunks: chunks, bestSimilarity: 0.61, keywordHits: 0)) == chunks)
+        // No vectors (embedding model missing): keyword results are still used.
+        #expect(SummaryPipeline.relevantContext(SearchOutcome(chunks: chunks, bestSimilarity: nil, keywordHits: 1)) == chunks)
     }
 }
 
@@ -159,6 +216,11 @@ struct ContextSummaryWriterTests {
         let plain = SummaryWriter.markdown(MeetingSummary(title: "T", overview: "O"), meetingStart: Date(),
                                            duration: 60, projectName: "P", language: .vietnamese)
         #expect(!plain.contains("Liên quan tới tài liệu") && !plain.contains("Thay đổi so với trước"))
+        #expect(!plain.contains("mã cuộc họp"))
+
+        let named = SummaryWriter.markdown(MeetingSummary(title: "T", overview: "O", meetingID: "2026-11-28_10-05-00"),
+                                           meetingStart: Date(), duration: 60, projectName: "P", language: .vietnamese)
+        #expect(named.contains("· P · mã cuộc họp `2026-11-28_10-05-00`"))
     }
 
     @Test func decodesSummaryJSONWithAndWithoutNewFields() throws {
